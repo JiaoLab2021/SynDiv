@@ -8,7 +8,6 @@ __author__ = "Zezhen Du"
 __email__ = "dzz0539@gmail.com or dzz0539@163.com"
 
 import os
-import datetime
 import argparse
 import sys
 import shutil
@@ -25,6 +24,13 @@ code_dir = os.path.dirname(os.path.realpath(__file__)) + os.sep
 # 环境变量
 code_path = {'PATH': os.environ.get('PATH')}
 
+# log
+logger = logging.getLogger('SynDiv')
+formatter = logging.Formatter('[%(asctime)s] %(message)s')
+handler = logging.StreamHandler()  # 输出到控制台
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+
 
 # 创建目录
 def makedir(
@@ -34,17 +40,38 @@ def makedir(
     :param path_dir: 需要创建的文件夹路径
     :return: 0
     """
-    # log
-    logger = logging.getLogger('makedir')
-
     if os.path.isdir(path_dir):
         shutil.rmtree(path_dir)
         os.makedirs(path_dir)
-        log = "[" + str(datetime.datetime.now()).split(".")[0] + \
-                '] [makedir] \'{}\' already exists, clear and recreate.'.format(path_dir)
+        log = '[makedir] \'{}\' already exists, clear and recreate.'.format(path_dir)
         logger.error(log)
     else:
         os.makedirs(path_dir)
+
+
+# 运行多线程任务
+def run_command(command, envPath):
+    # 提交任务
+    proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=envPath)
+
+    # 获取退出状态
+    exit_state = proc.wait()
+    
+    stdout, stderr = proc.communicate()
+    stdout = stdout.decode()
+    stderr = stderr.decode()
+
+    # 标准输出和错误输出
+    if exit_state != 0 or "FileNotFoundError" in str(stderr) or \
+            "command not found" in str(stderr) or \
+            "error" in str(stderr) or \
+            "Error" in str(stderr):
+        logger.error(f"Error: Exit status is {exit_state}")
+        logger.error(f"Error: CMD -> {command}")
+        logger.error(f"Error: stderr -> {stderr}")
+        sys.exit(1)
+
+    return exit_state, stdout, stderr
 
 
 # 获取fasta每条序列的长度
@@ -83,7 +110,7 @@ def getParser():
     # log
     logger = logging.getLogger('getParser')
 
-    logger.error(f"\ndata: {__data__}")
+    logger.error(f"data: {__data__}")
     logger.error(f"version: {__version__}")
     logger.error(f"author: {__author__}")
     logger.error(f"\nIf you encounter any issues related to the code, please don't hesitate to contact us via email at {__email__}.\n")
@@ -91,8 +118,8 @@ def getParser():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     optional = parser._action_groups.pop()
     required = parser.add_argument_group("Input Files")
-    required.add_argument("-r, --reference", dest="reference", help="Input FASTA reference", type=argparse.FileType('r'), required=True)
-    required.add_argument("-c, --config", dest="config", help="Configuration file (format: sample\tgenome_path\taligns_path\tsyri_out_path)", type=argparse.FileType('r'), required=True)
+    required.add_argument("-r, --reference", dest="reference", help="Input FASTA reference", type=str, required=True)
+    required.add_argument("-c, --config", dest="config", help="Configuration file (format: sample\tgenome_path\taligns_path\tsyri_out_path)", type=str, required=True)
 
     other = parser.add_argument_group("Additional arguments")
     other.add_argument('-F', dest="ftype", help="Input file type. T: Table, S: SAM, B: BAM, P: PAF", default="S", choices=['T', 'S', 'B', 'P'])
@@ -100,22 +127,40 @@ def getParser():
     other.add_argument('--dir', dest='dir', help="Path to working directory (if not current directory). All files must be in this directory.", action='store')
     other.add_argument("--prefix", dest="prefix", help="Prefix to add before the output file Names", type=str, default="SynDiv.")
     other.add_argument("--no-chrmatch", dest='chrmatch', help="Don't allow automatic matching chromosome ids between the two genomes if they are not equal", default=False, action='store_true')
-    other.add_argument('--mode', dest="mode", help="enabling quick mode will increase memory consumption", default="normal", choices=["fast", "normal"])
-    other.add_argument('-w, --window', dest="window", help="window size", type=int, default=5000)
-    other.add_argument('-s, --step', dest="step", help="step size", type=int, default=1000)
-    other.add_argument("--debug", dest='debug', help="debug code", default=False, action='store_true')
+    other.add_argument('--mode', dest="mode", help="Enabling quick mode will increase memory consumption", default="normal", choices=["fast", "normal"])
+    other.add_argument('--synRatio', dest="synRatio", help="Threshold for complete synteny detection. Lower values increase alignment speed (0,1].", type=float, default=0.8)
+    other.add_argument('--nosynRatio', dest="nosynRatio", help="Threshold for complete no-synteny detection. Higher values increase alignment speed (0,1].", type=float, default=0.05)
+    other.add_argument('--window', dest="window", help="Window size", type=int, default=5000)
+    other.add_argument('--step', dest="step", help="Step size", type=int, default=1000)
+    other.add_argument("--debug", dest='debug', help="Debug code", default=False, action='store_true')
 
     # 并行参数
     parallel_option = parser.add_argument_group(title="parallel")
     # 进程
-    parallel_option.add_argument("--jobs", dest="jobs", help="Run n jobs in parallel", type=int, default=100)
+    parallel_option.add_argument("--jobs", dest="jobs", help="Run n jobs in parallel", type=int, default=150)
     # 线程
-    parallel_option.add_argument("--threads", dest="threads", help="Number of threads used per job", type=int, default=3)
-
+    parallel_option.add_argument("--threads", dest="threads", help="Number of threads used by SynDiv_c", type=int, default=10)
+    
     args = parser.parse_args()
 
-    # 设置参考基因组为全路径
-    referencePath = os.path.abspath(args.reference.name)
+    # 设置配置文件为全路径
+    args.reference= os.path.abspath(args.reference)
+
+    # 检查文件是否存在
+    if not os.path.exists(args.reference):
+        logger.error(f"'{args.reference}' No such file or directory.")
+        sys.exit(1)
+    if not os.path.exists(args.config):
+        logger.error(f"'{args.config}' No such file or directory.")
+        sys.exit(1)
+
+    # 检查参数是否正确
+    if args.synRatio > 1 or args.synRatio < 0:
+        logger.error(f"The synRatio value should be between 0 and 1: {args.ratio}.")
+        sys.exit(1)
+    if args.nosynRatio > 1 or args.nosynRatio < 0:
+        logger.error(f"The nosynRatio value should be between 0 and 1: {args.ratio}.")
+        sys.exit(1)
 
     # Set CWD and check if it exists
     if args.dir is None:
@@ -130,8 +175,8 @@ def getParser():
             sys.exit(1)
 
     # set the dict of all genomes path
-    configFileMap = {}  # dict{sample, {genome: "path", aligns: "path", syri_out: "path"}}
-    with open(args.config.name, "r") as f:
+    config_file_map = {}  # dict{sample, {genome: "path", aligns: "path", syri_out: "path"}}
+    with open(args.config, "r") as f:
         for info in f.readlines():
             # 跳过空行
             if len(info) == 0 or "#" in info:
@@ -142,14 +187,14 @@ def getParser():
 
             # 检查列数是否符合规定
             if len(infoList) != 4:
-                logger.error("Error: '" + args.genomes.name + f"' is not four columns -> {info}")
+                logger.error("Error: '" + args.config + f"' is not four columns -> {info}")
                 sys.exit(1)
 
             # 记录该样品的基因组全路径
             genomeFilePath = os.path.abspath(infoList[1])
             alignsFilePath = os.path.abspath(infoList[2])
             syriOutFilePath = os.path.abspath(infoList[3])
-            configFileMap[infoList[0]] = {
+            config_file_map[infoList[0]] = {
                 "genome": genomeFilePath, 
                 "aligns": alignsFilePath, 
                 "syri_out": syriOutFilePath
@@ -166,19 +211,17 @@ def getParser():
     if args.debug:
         args.jobs = 1
 
-    return args, referencePath, configFileMap
+    return args, config_file_map
 
 
 # 运行 SynDiv_c multiinter
-def multiinter(configFileMap, prefix, workDir):
+def multiinter(config_file_map, prefix, workDir):
     """
-    :param configFileMap:   getParser输出每个样品所有需要样品的路径
+    :param config_file_map:   getParser输出每个样品所有需要样品的路径
     :param prefix:  输出前缀
     :param workDir:  工作路径
     :return: multiinterPath
     """
-    logger = logging.getLogger('multiinter')
-
     # 创建工作路径
     makedir(workDir)
     workDir = workDir + os.sep
@@ -190,44 +233,31 @@ def multiinter(configFileMap, prefix, workDir):
     filePathList = []
     sampleNameList = []
 
-    for sampleName, value in configFileMap.items():
+    for sampleName, value in config_file_map.items():
         filePathList.append(value["syri_out"])
         sampleNameList.append(sampleName)
     
     multiinterPath = os.path.join(workDir, f"{prefix}multiinter.out")
     cmd += "-i " + " ".join(filePathList) + " -n " + " ".join(sampleNameList) + f" -o {multiinterPath}"
 
-    logger.error(f'[{str(datetime.datetime.now()).split(".")[0]}] CMD: {cmd}')
+    logger.error(f'CMD: {cmd}')
 
     # 提交任务
-    cmd_out = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=code_path)
-    # 标准输出和错误输出
-    stdout, stderr = cmd_out.communicate()
-    exit_state = cmd_out.returncode
-    if exit_state != 0 or "FileNotFoundError" in str(stderr) or \
-            "command not found" in str(stderr) or \
-            "error" in str(stderr) or \
-            "Error" in str(stderr):
-        logger.error(f"Error: Exit status is non-zero.")
-        logger.error(f"Error: CMD -> {cmd}")
-        logger.error(f"Error: stderr -> {stderr}")
-        sys.exit(1)
+    run_command(cmd, code_path)
 
     return multiinterPath
 
 
 # 运行 SynDiv_c coor
-def coor(configFileMap, multiinterPath, threads, prefix, workDir):
+def coor(config_file_map, multiinterPath, threads, prefix, workDir):
     """
-    :param configFileMap:   getParser输出每个样品所有需要样品的路径
+    :param config_file_map:   getParser输出每个样品所有需要样品的路径
     :param multiinterPath:  SynDiv_c multiinter 输出的共线性相交结果
     :param threads:  线程数
     :param prefix:  输出前缀
     :param workDir:  工作路径
     :return: coorPath
     """
-    logger = logging.getLogger('coor')
-
     # 创建工作路径
     makedir(workDir)
     workDir = workDir + os.sep
@@ -239,43 +269,30 @@ def coor(configFileMap, multiinterPath, threads, prefix, workDir):
     filePathList = []
     sampleNameList = []
 
-    for sampleName, value in configFileMap.items():
+    for sampleName, value in config_file_map.items():
         filePathList.append(value["aligns"])
         sampleNameList.append(sampleName)
     
     coorPath = os.path.join(workDir, f"{prefix}coor.out")
     cmd += "-i " + " ".join(filePathList) + " -n " + " ".join(sampleNameList) + f" -o {coorPath}"
 
-    logger.error(f'[{str(datetime.datetime.now()).split(".")[0]}] CMD: {cmd}')
+    logger.error(f'CMD: {cmd}')
 
     # 提交任务
-    cmd_out = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=code_path)
-    # 标准输出和错误输出
-    stdout, stderr = cmd_out.communicate()
-    exit_state = cmd_out.returncode
-    if exit_state != 0 or "FileNotFoundError" in str(stderr) or \
-            "command not found" in str(stderr) or \
-            "error" in str(stderr) or \
-            "Error" in str(stderr):
-        logger.error(f"Error: Exit status is non-zero.")
-        logger.error(f"Error: CMD -> {cmd}")
-        logger.error(f"Error: stderr -> {stderr}")
-        sys.exit(1)
+    run_command(cmd, code_path)
 
     return coorPath
 
 
 # 运行 SynDiv_c no_syn
-def no_syn(configFileMap, coorPath, prefix, workDir):
+def no_syn(config_file_map, coorPath, prefix, workDir):
     """
-    :param configFileMap:   getParser输出每个样品所有需要样品的路径
+    :param config_file_map:   getParser输出每个样品所有需要样品的路径
     :param coorPath:  SynDiv_c coor输出的共线性在qurey上的坐标
     :param prefix:  输出前缀
     :param workDir:  工作路径
     :return: coorPath
     """
-    logger = logging.getLogger('no_syn')
-
     # 创建工作路径
     makedir(workDir)
     workDir = workDir + os.sep
@@ -285,7 +302,7 @@ def no_syn(configFileMap, coorPath, prefix, workDir):
     # 生成染色体长度信息
     filePathList = []
     sampleNameList = []
-    for key, value in configFileMap.items():
+    for key, value in config_file_map.items():
         sampleNameList.append(key)
         filePath = os.path.join(workDir, f"{key}.length")
         filePathList.append(filePath)
@@ -298,38 +315,24 @@ def no_syn(configFileMap, coorPath, prefix, workDir):
     no_synPath = os.path.join(workDir, f"{prefix}coor.out")
     cmd += "--lengths " + " ".join(filePathList) + " -n " + " ".join(sampleNameList) + f" -o {no_synPath}"
 
-    logger.error(f'[{str(datetime.datetime.now()).split(".")[0]}] CMD: {cmd}')
+    logger.error(f'CMD: {cmd}')
 
     # 提交任务
-    cmd_out = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=code_path)
-    # 标准输出和错误输出
-    stdout, stderr = cmd_out.communicate()
-    exit_state = cmd_out.returncode
-    if exit_state != 0 or "FileNotFoundError" in str(stderr) or \
-            "command not found" in str(stderr) or \
-            "error" in str(stderr) or \
-            "Error" in str(stderr):
-        logger.error(f"Error: Exit status is non-zero.")
-        logger.error(f"Error: CMD -> {cmd}")
-        logger.error(f"Error: stderr -> {stderr}")
-        sys.exit(1)
+    run_command(cmd, code_path)
 
     return no_synPath
 
 
 # 运行 SynDiv_c cal
-def cal(args, referencePath, configFileMap, coorPath, no_syn_alignmentPath, workDir):
+def cal(args, config_file_map, coorPath, no_syn_alignmentPath, workDir):
     """
     :param args:  getParser输出参数
-    :param referencePath: 参考基因组路径
-    :param configFileMap:   getParser输出每个样品所有需要样品的路径
+    :param config_file_map:   getParser输出每个样品所有需要样品的路径
     :param coorPath:  SynDiv_c coor输出的共线性在qurey上的坐标
     :param no_syn_alignmentPath: no_syn_alignment 输出的配置文件路径
     :param workDir:  工作路径
     :return: calPath
     """
-    logger = logging.getLogger('cal')
-
     # 创建工作路径
     makedir(workDir)
     workDir = workDir + os.sep
@@ -339,12 +342,12 @@ def cal(args, referencePath, configFileMap, coorPath, no_syn_alignmentPath, work
     # 参数信息
     filePathList = []
     sampleNameList = []
-    for sampleName, value in configFileMap.items():
+    for sampleName, value in config_file_map.items():
         filePathList.append(value["aligns"])
         sampleNameList.append(sampleName)
 
     # no_syn 命令
-    cmd = f"{code_dir}SynDiv_c cal -t {args.threads} -r {referencePath} --coor {coorPath} --syri_outs {no_syn_alignmentPath} "
+    cmd = f"{code_dir}SynDiv_c cal -t {args.threads} -r {args.reference} --coor {coorPath} --syri_outs {no_syn_alignmentPath} "
 
     if args.mode == "fast":
         cmd += "--fast "
@@ -352,94 +355,68 @@ def cal(args, referencePath, configFileMap, coorPath, no_syn_alignmentPath, work
     calPath = os.path.join(workDir, f"{args.prefix}coor.out")
     cmd += "--aligns " + " ".join(filePathList) + " -n " + " ".join(sampleNameList) + f" -o {calPath}"
 
-    logger.error(f'[{str(datetime.datetime.now()).split(".")[0]}] CMD: {cmd}')
+    logger.error(f'CMD: {cmd}')
 
     # 提交任务
-    cmd_out = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=code_path)
-    # 标准输出和错误输出
-    stdout, stderr = cmd_out.communicate()
-    exit_state = cmd_out.returncode
-    if exit_state != 0 or "FileNotFoundError" in str(stderr) or \
-            "command not found" in str(stderr) or \
-            "error" in str(stderr) or \
-            "Error" in str(stderr):
-        logger.error(f"Error: Exit status is non-zero.")
-        logger.error(f"Error: CMD -> {cmd}")
-        logger.error(f"Error: stderr -> {stderr}")
-        sys.exit(1)
+    run_command(cmd, code_path)
 
     return calPath
 
 
 # 运行 SynDiv_c cal
-def window(args, referencePath, calPath):
+def window(args, calPath):
     """
     :param args:  getParser输出参数
-    :param referencePath: 参考基因组路径
     :param calPath:   SynDiv_c cal 计算的每个坐标的 syntenic diversity
     :return: windowPath
     """
-    logger = logging.getLogger('window')
-
+    # 输出文件
     windowPath = os.path.abspath(f"{args.prefix}SynDiv.out")
 
     # no_syn 命令
-    cmd = f"{code_dir}SynDiv_c window -r {referencePath} -i {calPath} -w {args.window} -s {args.step} -o {windowPath}"
+    cmd = f"{code_dir}SynDiv_c window -r {args.reference} -i {calPath} -w {args.window} -s {args.step} -o {windowPath}"
 
-    logger.error(f'[{str(datetime.datetime.now()).split(".")[0]}] CMD: {cmd}')
+    logger.error(f'CMD: {cmd}')
 
     # 提交任务
-    cmd_out = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=code_path)
-    # 标准输出和错误输出
-    stdout, stderr = cmd_out.communicate()
-    exit_state = cmd_out.returncode
-    if exit_state != 0 or "FileNotFoundError" in str(stderr) or \
-            "command not found" in str(stderr) or \
-            "error" in str(stderr) or \
-            "Error" in str(stderr):
-        logger.error(f"Error: Exit status is non-zero.")
-        logger.error(f"Error: CMD -> {cmd}")
-        logger.error(f"Error: stderr -> {stderr}")
-        sys.exit(1)
+    run_command(cmd, code_path)
 
     return windowPath
 
 
 def main():
-    logger = logging.getLogger('SynDiv')
-
-    logger.error(f'[{str(datetime.datetime.now()).split(".")[0]}] Running.')
-
     # ################################################# 解析参数 ################################################# #
-    args, referencePath, configFileMap = getParser()
+    args, config_file_map = getParser()
+
+    logger.error(f'Running.')
 
     # ################################################# SynDiv_c multiinter ################################################# #
     os.chdir(args.dir)
-    multiinterPath = multiinter(configFileMap, args.prefix, os.path.join(args.dir, "multiinter"))
+    multiinterPath = multiinter(config_file_map, args.prefix, os.path.join(args.dir, "multiinter"))
 
     # ################################################# SynDiv_c coor ################################################# #
     os.chdir(args.dir)
-    coorPath = coor(configFileMap, multiinterPath, args.jobs, args.prefix, os.path.join(args.dir, "coor"))
+    coorPath = coor(config_file_map, multiinterPath, args.threads, args.prefix, os.path.join(args.dir, "coor"))
 
     # ################################################# SynDiv_c no_syn ################################################# #
     os.chdir(args.dir)
-    no_synPath = no_syn(configFileMap, coorPath, args.prefix, os.path.join(args.dir, "no_syn"))
+    no_synPath = no_syn(config_file_map, coorPath, args.prefix, os.path.join(args.dir, "no_syn"))
 
     # ################################################# no_syn_alignment ################################################# #
     os.chdir(args.dir)
-    no_syn_alignmentPath = no_syn_alignment.main(args, configFileMap, no_synPath, os.path.join(args.dir, "no_syn_alignment"), code_path)
+    no_syn_alignmentPath = no_syn_alignment.main(args, config_file_map, no_synPath, os.path.join(args.dir, "no_syn_alignment"), code_path)
 
     # ################################################# no_syn_alignment ################################################# #
     os.chdir(args.dir)
-    calPath = cal(args, referencePath, configFileMap, coorPath, no_syn_alignmentPath, os.path.join(args.dir, "cal"))
+    calPath = cal(args, config_file_map, coorPath, no_syn_alignmentPath, os.path.join(args.dir, "cal"))
     
     # ################################################# no_syn_alignment ################################################# #
     os.chdir(args.dir)
-    winPath = window(args, referencePath, calPath)
+    winPath = window(args, calPath)
 
-    logger.error(f'[{str(datetime.datetime.now()).split(".")[0]}] Result: {calPath}')
-    logger.error(f'[{str(datetime.datetime.now()).split(".")[0]}] Result: {winPath}')
-    logger.error(f'[{str(datetime.datetime.now()).split(".")[0]}] Done.')
+    logger.error(f'Result: {calPath}')
+    logger.error(f'Result: {winPath}')
+    logger.error(f'Done.')
 
 
 if __name__ == '__main__':

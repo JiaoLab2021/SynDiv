@@ -6,6 +6,7 @@
 #include <getopt.h>
 #include "include/get_time.hpp"
 #include "include/strip_split_join.hpp"
+#include "include/sys.hpp"
 #include "src/multiinter.cpp"
 #include "src/coor.cpp"
 #include "src/no_syn.cpp"
@@ -28,6 +29,9 @@ void help(char** argv);
 
 int main(int argc, char** argv)
 {
+    // 记录初始时间
+    double realtime0 = realtime();
+
     // 打印帮助文档
     if (argc == 1) {
         help(argv);
@@ -40,7 +44,7 @@ int main(int argc, char** argv)
     if (subcommand == "-h" || subcommand == "--help")
     {
         help(argv);
-    return 1;
+        return 1;
     }
     else if (subcommand == "multiinter")
     {
@@ -66,9 +70,14 @@ int main(int argc, char** argv)
     {
         cerr << "Error: ["<< argv[0] << "] command " << subcommand << " not found" << endl;
         help(argv);
-    return 1;
+        return 1;
     }
 
+    // 打印时间和内存使用情况
+    if (realtime() - realtime0 > 1.0)  // 禁止查看帮助文档时的输出
+    {
+        fprintf(stderr, "[S::%s] Real time: %.3f sec; CPU: %.3f sec; Peak RSS: %.3f GB\n", __func__, realtime() - realtime0, cputime(), peakrss() / 1024.0 / 1024.0 / 1024.0);
+    }
     
     return 0;
 }

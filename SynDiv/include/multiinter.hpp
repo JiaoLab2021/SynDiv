@@ -376,9 +376,11 @@ namespace MULTIINTER
         const string & outputName
     )
     {
-        cerr << "[" << __func__ << "::" << getTime() << "] " << "Saving." << endl;
+        SAVE::SAVE SAVEClass(outputName);
 
         stringstream outStream; // 使用 stringstream 代替字符串拼接
+        static const uint64_t CACHE_SIZE = 1024 * 1024 * 10; // 缓存大小为 10mb
+        outStream.str().reserve(CACHE_SIZE);
 
         // 将lineName添加到列表中
         vector<string> lineNameVec;
@@ -414,15 +416,42 @@ namespace MULTIINTER
                         {
                             boolVecTmp.push_back(0);
                         }
+
+                        // 如果到vector的结尾，跳出for循环
+                        if (idxTmp == get<1>(it3).size())
+                        {
+                            break;
+                        }  
                     }
+
+                    // 如果结果为空，跳过该位点
+                    if (lineNameVecTmp.size() == 0)
+                    {
+                        continue;
+                    }
+                    
                     outStream << join(lineNameVecTmp, ",") << "\t" + join(boolVecTmp, "\t") << "\n";
+
+                    if (outStream.tellp() >= CACHE_SIZE)  // 缓存大小为 10mb
+                    {
+                        string outTxt = outStream.str();
+                        SAVEClass.save(outTxt);
+                        // 清空 stringstream
+                        outStream.str(string());
+                        outStream.clear();
+                    }
                 }
             }
         }
 
-        string outTxt = outStream.str();
-        SAVE::SAVE SAVEClass(outputName);
-        SAVEClass.save(outTxt);
+        if (outStream.tellp() >= 0)  // 最后写一次
+        {
+            string outTxt = outStream.str();
+            SAVEClass.save(outTxt);
+            // 清空 stringstream
+            outStream.str(string());
+            outStream.clear();
+        }
         
         return 0;
     }

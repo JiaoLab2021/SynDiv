@@ -188,21 +188,22 @@ int main_cal(int argc, char* argv[])
          syriConfigFileName
     );
 
-    /* ************************************ Build Syntenic Coordinates Index ************************************ */
-    cerr << "[" << __func__ << "::" << getTime() << "] " << "Build Syntenic Coordinates Index." << endl;
+    /* ************************************ Building Syntenic Coordinates Index ************************************ */
+    cerr << "[" << __func__ << "::" << getTime() << "] " << "Building Syntenic Coordinates Index." << endl;
     CAL::SYNCOOR SynCoorTmp(coorFileName);
     SynCoorTmp.open_coor();
 
     // 所有组合数量
     uint32_t allSynNum = SynCoorTmp.sampleNameVec.size() * (SynCoorTmp.sampleNameVec.size() - 1) / 2;  // n*(n-1)/2
 
-    /* ************************************ Buile the Index of Reference ************************************ */
+    /* ************************************ Building Reference Index ************************************ */
+    cerr << "[" << __func__ << "::" << getTime() << "] " << "Building Reference Index." << endl;
     map<string, uint32_t> refLenMap = CAL::build_fasta_index(
         referenceFileName
     );
 
-    /* ************************************ Calculate Syntenic Diversity ************************************ */
-    cerr << "[" << __func__ << "::" << getTime() << "] " << "Compute Syntenic Diversity." << endl;
+    /* ************************************ Calculating Syntenic Diversity ************************************ */
+    cerr << "[" << __func__ << "::" << getTime() << "] " << "Calculating Syntenic Diversity." << endl;
     if (fastBool)
     {
         CAL::calculate_fast(

@@ -750,8 +750,13 @@ namespace COOR
         const string& outputFileName
     )
     {
+        SAVE::SAVE SAVEClass(outputFileName);
+
+        stringstream outStream; // 使用 stringstream 代替字符串拼接
+        static const uint64_t CACHE_SIZE = 1024 * 1024 * 10; // 缓存大小为 10mb
+        outStream.str().reserve(CACHE_SIZE);
+
         // 保存结果
-        stringstream outTxtStream;
         for (const auto& [chromosome, locationSampleVec] : synLocSampleVecMap)  // map<chr, vector<tuple<refStart, refEnd, vector<sample> > > >
         {
             // 记录上一个共线性坐标，防止共线性之间有间隔
@@ -762,31 +767,44 @@ namespace COOR
                 // 否则判断是否有间隔
                 if(preSynEnd != 0 && synStart - preSynEnd > 1)
                 {
-                    outTxtStream << chromosome << '\t' << preSynEnd + 1 << '\t' << synStart - 1;
+                    outStream << chromosome << '\t' << preSynEnd + 1 << '\t' << synStart - 1;
                     for (const auto& it3 : synLocVecOutMapTmpVec)  // vector<synAllStructure>
                     {
-                        outTxtStream << '\t' << it3.sampleName << '\t' << 0 << '\t' << 0;
+                        outStream << '\t' << it3.sampleName << '\t' << 0 << '\t' << 0;
                     }
-                    outTxtStream << '\n';
+                    outStream << '\n';
                 }
 
                 preSynEnd = synEnd;  // 记录上一个共线性的坐标
 
                 // 当前节点的信息
-                outTxtStream << chromosome << '\t' << synStart << '\t' << synEnd;
+                outStream << chromosome << '\t' << synStart << '\t' << synEnd;
                 for (const auto& it3 : synLocVecOutMapTmpVec)  // vector<synAllStructure>
                 {
                     const auto& chrStartSynQryLoc = it3.chrStartSynQryLocMap.at(chromosome).at(synStart);
-                    outTxtStream << '\t' << it3.sampleName << '\t' << get<0>(chrStartSynQryLoc) << '\t' << get<1>(chrStartSynQryLoc);
+                    outStream << '\t' << it3.sampleName << '\t' << get<0>(chrStartSynQryLoc) << '\t' << get<1>(chrStartSynQryLoc);
                 }
-                outTxtStream << '\n';
+                outStream << '\n';
+
+                if (outStream.tellp() >= CACHE_SIZE)  // 缓存大小为 10mb
+                {
+                    string outTxt = outStream.str();
+                    SAVEClass.save(outTxt);
+                    // 清空 stringstream
+                    outStream.str(string());
+                    outStream.clear();
+                }
             }
         }
 
-        // 输出到屏幕或保存到文件
-        string outTxt = strip(outTxtStream.str(), '\n');
-        SAVE::SAVE SaveClass(outputFileName);
-        SaveClass.save(outTxt);
+        if (outStream.tellp() >= 0)  // 最后写一次
+        {
+            string outTxt = outStream.str();
+            SAVEClass.save(outTxt);
+            // 清空 stringstream
+            outStream.str(string());
+            outStream.clear();
+        }
 
         return 0;
     }

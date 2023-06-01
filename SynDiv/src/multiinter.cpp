@@ -140,14 +140,14 @@ int main_multiinter(int argc, char* argv[])
 
     /* ************************************ Find intersection ************************************ */
     cerr << "[" << __func__ << "::" << getTime() << "] " << "Find intersection." << endl;
-    map<string, map<int, vector<tuple<int, vector<string> > > > > outChrStartEndLineVecMap;
+    map<string, map<int, vector<tuple<int, vector<string> > > > > outChrStartEndLineVecMap;  // map<chr, map<refStart, vector<tuple<refEnd, vector<lineName>>>>>
     map<int, string> idxLineMap;
     tie(outChrStartEndLineVecMap, idxLineMap) = MULTIINTER::syn_multiinter_find(
         chrLineSynVecMap
     );
 
     /* ************************************ Save The Result ************************************ */
-    cerr << "[" << __func__ << "::" << getTime() << "] " << "Save the Result." << endl;
+    cerr << "[" << __func__ << "::" << getTime() << "] " << "Saving the Result." << endl;
     MULTIINTER::save_result(
         outChrStartEndLineVecMap, 
         idxLineMap, 
