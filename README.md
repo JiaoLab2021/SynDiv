@@ -1,5 +1,10 @@
 # SynDiv
 
+[![GitHub Downloads](https://img.shields.io/github/downloads/JiaoLab2021/SynDiv/total.svg?style=social&logo=github&label=Download)](https://github.com/JiaoLab2021/SynDiv/releases)
+[![BioConda Install](https://img.shields.io/conda/dn/duzezhen/syndiv.svg?style=flag&label=BioConda%20install)](https://anaconda.org/DuZeZhen/syndiv)
+[![GitHub last commit](https://img.shields.io/github/last-commit/JiaoLab2021/syndiv.svg?label=Last%20commit&logo=github&style=flat)](https://github.com/JiaoLab2021/SynDiv/releases)
+[![Build Status](https://github.com/JiaoLab2021/SynDiv/actions/workflows/ci.yaml/badge.svg)](https://github.com/JiaoLab2021/SynDiv/actions)
+
 ## Introduction
 
 A tool for quick and accurate calculation of syntenic diversity.

@@ -485,6 +485,34 @@ class AlignmentLociClass:
         return key1, sample1_sample2_synpd_tmp
     
 
+def samtools_index(
+    path,
+    config_file_map
+):
+    """
+    :description:              build the genome index
+    :param path:               environment variable
+    :param: config_file_map    dict{sample, {genome: "path", aligns: "path", syri_out: "path"}}
+    :
+    :return:                   0
+    """
+    for key1, value1 in config_file_map.items():
+        # the path of genome
+        genomeFile = value1['genome']
+        # the path of genome idx
+        genomeIdxFile = f"{value1['genome']}.fai"
+        # Check if the index file exists
+        if os.path.exists(genomeIdxFile):
+            continue
+        else:
+            # build the index
+            cmd = f"samtools faidx {genomeFile}"
+            # submit task
+            run_command(cmd, path)
+
+    return 0
+
+
 def samtools(
     path, 
     ali_loci_filename,
@@ -781,7 +809,10 @@ def main(args, config_file_map, no_synPath, workDir, code_path):
 
     # #################################### build index #################################### #
     logger.error(f'Building index.')
+
     ali_loci_class._index()
+
+    samtools_index(code_path, config_file_map)
 
 
     # #################################### Alignment #################################### #

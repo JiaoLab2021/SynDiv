@@ -1,0 +1,39 @@
+package:
+  name: syndiv
+  version: 1.0.1
+
+source:
+  path: .
+
+requirements:
+  build:
+    - cmake >=3.12
+    - gcc >=7.3.0
+    - python =3.6
+    - zlib
+
+  run:
+    - cmake >=3.12
+    - gcc >=7.3.0
+    - python =3.6
+    - zlib
+    - samtools
+    - minimap2
+    - pandas
+    - numpy
+    - pysam
+    - psutil
+
+channels:
+    - bioconda
+    - defaults
+    - conda-forge
+
+about:
+  home: https://github.com/JiaoLab2021/SynDiv
+  license: MIT
+  summary: A tool for quick and accurate calculation of syntenic diversity
+
+extra:
+  recipe-maintainers:
+    - duzezhen

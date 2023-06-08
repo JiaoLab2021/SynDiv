@@ -44,7 +44,7 @@ public:
             if(!gzfpO)
             {
                 cerr << "[" << __func__ << "::" << getTime() << "] " 
-                    << "'" << outputFileName_ << "': No such file or directory." << endl;
+                    << "'" << outputFileName_ << "': No such file or directory or possibly reached the maximum open file limit. You can set 'ulimit -n' to a larger value to continue." << endl;
                 exit(1);
             }
         }
@@ -55,7 +55,7 @@ public:
             if(!fpO)
             {
                 cerr << "[" << __func__ << "::" << getTime() << "] " 
-                    << "'" << outputFileName_ << "': No such file or directory." << endl;
+                    << "'" << outputFileName_ << "': No such file or directory or possibly reached the maximum open file limit. You can set 'ulimit -n' to a larger value to continue." << endl;
                 exit(1);
             }
         }

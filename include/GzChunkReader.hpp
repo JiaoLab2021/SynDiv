@@ -18,7 +18,7 @@ public:
 
         if (!file_) {
             std::cerr << "[" << __func__ << "::" << getTime() << "] "
-                << "'" << file_path_ << "': No such file or directory." << std::endl;
+                << "'" << file_path_ << "': No such file or directory or possibly reached the maximum open file limit. You can set 'ulimit -n' to a larger value to continue." << std::endl;
             exit(1);
         }
     }
