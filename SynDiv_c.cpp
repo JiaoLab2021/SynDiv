@@ -39,6 +39,8 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    cerr << "[" << __func__ << "::" << getTime() << "] " << "You are using SynDiv (v" << PROGRAM_VERSION << ")\n\n";
+
     // ×Ó¹¦ÄÜ
     string subcommand = argv[1];
 
