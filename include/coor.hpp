@@ -174,15 +174,15 @@ namespace COOR
     /**
      * @brief 保存结果
      * 
-     * @param synLocSampleVecMap       build_syn_idx构建的索引   map<chr, vector<tuple<refStart, refEnd, vector<sample> > > >
-     * @param synLocVecOutMapTmpVec    get_syn_coor返回值   vector<synAllStructure>
-     * @param outputFileName             输出文件名
+     * @param synLocSampleVecMap            build_syn_idx构建的索引   map<chr, vector<tuple<refStart, refEnd, vector<sample> > > >
+     * @param sampleChrStartSynQryLocMap    get_syn_coor返回值   map<sampleName, chrStartSynQryLocMap>   map<sampleName, map<chr, map<synStart, tuple<qrySynStart, qrySynEnd> > > >
+     * @param outputFileName                输出文件名
      * 
      * @return chrStartSynQryLocMap      synAllStructure
     */
     int save_result(
         const map<string, vector<tuple<int, int, vector<string> > > >& synLocSampleVecMap,
-        const vector<COOR::synAllStructure>& synLocVecOutMapTmpVec,
+        const map<string, unordered_map<string, unordered_map<int, tuple<int, int> > > >& sampleChrStartSynQryLocMap,
         const string& outputFileName
     );
 }

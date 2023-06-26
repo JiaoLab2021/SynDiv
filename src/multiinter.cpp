@@ -186,7 +186,7 @@ pair<string, map<string, vector<pair<int, int> > > > MULTIINTER::build_syn_index
         lineName.replace(lineName.begin() + iter1, lineName.begin() + iter1 + prefix.size(), "");
     }
     
-    cerr << "[" << __func__ << "::" << getTime() << "] " << "Building index: " << inputFileName << ".\n";  // print log
+    cerr << "[" << __func__ << "::" << getTime() << "] " << "Building index: " << inputFileName << " ...\n";  // print log
 
     map<string, vector<pair<int, int> > > chrSynVecMap;  // map<chromosome, vector<pair<refStart, refEnd>>>
 

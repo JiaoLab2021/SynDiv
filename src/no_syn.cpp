@@ -371,37 +371,49 @@ void NOSYN::NOSYNCOOR::find_no_syn_coor(
     }
 
 
+    // saving the result
+    stringstream outStream; // 使用 stringstream 代替字符串拼接
+    static const uint64_t CACHE_SIZE = 1024 * 1024 * 10; // 缓存大小为 10mb
+    outStream.str().reserve(CACHE_SIZE);
+
     // 结果转为字符串
-    for (auto iter1 : chrStartSampleLociVecMap)  // map<chr, map<refStart, map<sample, vector<tuple<start, end> > > > >
+    for (const auto& [chr, startSampleLociVecMap] : chrStartSampleLociVecMap)  // map<chr, map<refStart, map<sample, vector<tuple<start, end> > > > >
     {
-        for (auto iter2 : iter1.second)  // map<refStart, map<sample, vector<tuple<start, end> > > >
+        for (const auto& [refStart, sampleLociVecMap] : startSampleLociVecMap)  // map<refStart, map<sample, vector<tuple<start, end> > > >
         {
-            // 空的节点跳过
-            if (iter2.second.size() == 0)
+            if (sampleLociVecMap.empty()) continue;
+
+            outStream << chr << "\t" << to_string(refStart);
+
+            for (const auto& [sample, lociVec] : sampleLociVecMap)  // map<sample, vector<tuple<start, end> > >
             {
-                continue;
-            }
+                outStream << "\t" << sample << ":";
             
-            outTxt += iter1.first + "\t" + to_string(iter2.first);
-
-            for (auto iter3 : iter2.second)  // map<sample, vector<tuple<start, end> > >
-            {
-                outTxt += "\t" + iter3.first + ":";
-
-                for (size_t i = 0; i < iter3.second.size(); i++)  // vector<tuple<start, end> >
+                for (size_t i = 0; i < lociVec.size(); ++i)
                 {
-                    if (i > 0)
-                    {
-                        outTxt += ";";
-                    }
-                    
-                    outTxt += to_string(get<0>(iter3.second[i])) + "-" + to_string(get<1>(iter3.second[i]));
+                    if (i > 0) outStream << ";";
+
+                    outStream << to_string(get<0>(lociVec[i])) << "-" << to_string(get<1>(lociVec[i]));
                 }
-
-                outTxt += "\t";
             }
-
-            outTxt += "\n";
+            outStream << "\t";
         }
+        outStream << "\n";
+
+        if (outStream.tellp() >= CACHE_SIZE)  // 缓存大小为 10mb
+        {
+            outTxt = outStream.str();
+            // 清空 stringstream
+            outStream.str(string());
+            outStream.clear();
+        }
+    }
+
+    if (outStream.tellp() >= 0)  // 最后写一次
+    {
+        outTxt = outStream.str();
+        // 清空 stringstream
+        outStream.str(string());
+        outStream.clear();
     }
 }

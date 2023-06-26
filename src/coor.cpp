@@ -167,23 +167,22 @@ int main_coor(int argc, char* argv[])
         // 多线程提交并保存结果
         chrStartSynQryLocMapVec.push_back(
             pool.submit(
-            COOR::get_syn_coor, 
-            sampleName, 
-            it, 
-            ref(synLocSampleVecMap), 
-            false
+                COOR::get_syn_coor, 
+                sampleName, 
+                it, 
+                ref(synLocSampleVecMap), 
+                false
             )
         );
-        sleep(0.00001);  // 线程间隔
 
         indexTmp++;  // 索引叠加
     }
 
     // 多线程结果保存
-    vector<COOR::synAllStructure> synLocVecOutMapTmpVec;  // COOR::synAllStructure
+    map<string, unordered_map<string, unordered_map<int, tuple<int, int> > > > sampleChrStartSynQryLocMap;
     for (size_t i = 0; i < chrStartSynQryLocMapVec.size(); i++)
     {
-        synLocVecOutMapTmpVec.push_back(move(chrStartSynQryLocMapVec[i].get()));
+        sampleChrStartSynQryLocMap[move(chrStartSynQryLocMapVec[i].get().sampleName)] = move(chrStartSynQryLocMapVec[i].get().chrStartSynQryLocMap);
     }
     chrStartSynQryLocMapVec.clear();
     vector<future<COOR::synAllStructure> >().swap(chrStartSynQryLocMapVec);
@@ -196,7 +195,7 @@ int main_coor(int argc, char* argv[])
     cerr << "[" << __func__ << "::" << getTime() << "] " << "Results are being saved to '" << outputFileName << "'" << endl;
     COOR::save_result(
         synLocSampleVecMap, 
-        synLocVecOutMapTmpVec, 
+        sampleChrStartSynQryLocMap, 
         outputFileName
     );
 
@@ -917,15 +916,15 @@ COOR::synAllStructure COOR::get_syn_coor(
 /**
  * @brief 保存结果
  * 
- * @param synLocSampleVecMap       build_syn_idx构建的索引   map<chr, vector<tuple<refStart, refEnd, vector<sample> > > >
- * @param synLocVecOutMapTmpVec    get_syn_coor返回值   vector<synAllStructure>
- * @param outputFileName             输出文件名
+ * @param synLocSampleVecMap            build_syn_idx构建的索引   map<chr, vector<tuple<refStart, refEnd, vector<sample> > > >
+ * @param sampleChrStartSynQryLocMap    get_syn_coor返回值   map<sampleName, chrStartSynQryLocMap>   map<sampleName, map<chr, map<synStart, tuple<qrySynStart, qrySynEnd> > > >
+ * @param outputFileName                输出文件名
  * 
  * @return chrStartSynQryLocMap      synAllStructure
 */
 int COOR::save_result(
     const map<string, vector<tuple<int, int, vector<string> > > >& synLocSampleVecMap,
-    const vector<COOR::synAllStructure>& synLocVecOutMapTmpVec,
+    const map<string, unordered_map<string, unordered_map<int, tuple<int, int> > > >& sampleChrStartSynQryLocMap,
     const string& outputFileName
 )
 {
@@ -947,9 +946,10 @@ int COOR::save_result(
             if(preSynEnd != 0 && synStart - preSynEnd > 1)
             {
                 outStream << chromosome << '\t' << preSynEnd + 1 << '\t' << synStart - 1;
-                for (const auto& it3 : synLocVecOutMapTmpVec)  // vector<synAllStructure>
+                
+                for (const auto& it3 : sampleChrStartSynQryLocMap)  // map<sampleName, map<chr, map<synStart, tuple<qrySynStart, qrySynEnd> > > >
                 {
-                    outStream << '\t' << it3.sampleName << '\t' << 0 << '\t' << 0;
+                    outStream << '\t' << it3.first << '\t' << 0 << '\t' << 0;
                 }
                 outStream << '\n';
             }
@@ -958,10 +958,10 @@ int COOR::save_result(
 
             // 当前节点的信息
             outStream << chromosome << '\t' << synStart << '\t' << synEnd;
-            for (const auto& it3 : synLocVecOutMapTmpVec)  // vector<synAllStructure>
+            for (const auto& it3 : sampleChrStartSynQryLocMap)  // map<sampleName, map<chr, map<synStart, tuple<qrySynStart, qrySynEnd> > > >
             {
-                const auto& chrStartSynQryLoc = it3.chrStartSynQryLocMap.at(chromosome).at(synStart);
-                outStream << '\t' << it3.sampleName << '\t' << get<0>(chrStartSynQryLoc) << '\t' << get<1>(chrStartSynQryLoc);
+                const auto& chrStartSynQryLoc = it3.second.at(chromosome).at(synStart);
+                outStream << '\t' << it3.first << '\t' << get<0>(chrStartSynQryLoc) << '\t' << get<1>(chrStartSynQryLoc);
             }
             outStream << '\n';
 
