@@ -180,7 +180,7 @@ class AlignmentLociClass:
         file_name_map = {key2: os.path.abspath(f"{key1}_{key2}.fa") 
                     for key2 in value1.keys()}
         file_name_loc_map = {key2: {} for key2 in value1.keys()}
-        sample_list = sorted(value1.keys())
+        sample_list = value1.keys()
 
         # chromosome
         chromosome = ""
@@ -372,7 +372,7 @@ class AlignmentLociClass:
         file_name_map = {key2: os.path.abspath(f"{key1}_{key2}.fa") 
                     for key2 in value1.keys()}
         file_name_loc_map = {key2: {} for key2 in value1.keys()}
-        sample_list = sorted(value1.keys())
+        sample_list = value1.keys()
 
         # ############### subseq ############### #
         results = []

@@ -75,7 +75,7 @@ int main(int argc, char** argv)
     }
 
     // 打印时间和内存使用情况
-    fprintf(stderr, "[S::%s] Real time: %.3f sec; CPU: %.3f sec; Peak RSS: %.3f GB\n", __func__, realtime() - realtime0, cputime(), peakrss() / 1024.0 / 1024.0 / 1024.0);
+    fprintf(stderr, "[SynDiv::%s] Real time: %.3f sec; CPU: %.3f sec; Peak RSS: %.3f GB\n", __func__, realtime() - realtime0, cputime(), peakrss() / 1024.0 / 1024.0 / 1024.0);
     
     return 0;
 }
