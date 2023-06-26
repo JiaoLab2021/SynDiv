@@ -129,11 +129,11 @@ int main_coor(int argc, char* argv[])
     }
 
 
-    cerr << "[" << __func__ << "::" << getTime() << "] " << "Running." << endl;
+    cerr << "[" << __func__ << "::" << getTime() << "] " << "Running ..." << endl;
 
     
     /* ************************************ Build Syntenic Coordinates Index ************************************ */
-    cerr << "[" << __func__ << "::" << getTime() << "] " << "Build Syntenic Coordinates Index." << endl;
+    cerr << "[" << __func__ << "::" << getTime() << "] " << "Build Syntenic Coordinates Index ..." << endl;
     map<string, vector<tuple<int, int, vector<string> > > > synLocSampleVecMap;  // map<chr, vector<tuple<refStart, refEnd, vector<sample> > > >
     synLocSampleVecMap = COOR::build_syn_idx(
         synLocFileName
@@ -141,7 +141,7 @@ int main_coor(int argc, char* argv[])
 
 
     /* ************************************ Find Syntenic Coordinates on query genomes ************************************ */
-    cerr << "[" << __func__ << "::" << getTime() << "] " << "Find Syntenic Coordinates on query genomes." << endl;
+    cerr << "[" << __func__ << "::" << getTime() << "] " << "Find Syntenic Coordinates on query genomes ..." << endl;
     ThreadPool pool(threads);  // 进程池
 
     // 初始化线程池
@@ -193,14 +193,14 @@ int main_coor(int argc, char* argv[])
     pool.shutdown();
     
     /* ************************************ Save The Result ************************************ */
-    cerr << "[" << __func__ << "::" << getTime() << "] " << "Save the Result." << endl;
+    cerr << "[" << __func__ << "::" << getTime() << "] " << "Saving result ..." << endl;
     COOR::save_result(
         synLocSampleVecMap, 
         synLocVecOutMapTmpVec, 
         outputFileName
     );
 
-    cerr << "[" << __func__ << "::" << getTime() << "] " << "Done." << endl;
+    cerr << "[" << __func__ << "::" << getTime() << "] " << "Done ..." << endl;
 
     return 0;
 }

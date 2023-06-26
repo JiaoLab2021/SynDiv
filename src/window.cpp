@@ -107,7 +107,7 @@ int main_window(int argc, char* argv[])
         exit(1);
     }
 
-    cerr << "[" << __func__ << "::" << getTime() << "] " << "Running." << endl;
+    cerr << "[" << __func__ << "::" << getTime() << "] " << "Running ..." << endl;
 
     /* ************************************ Buile the Index of Reference ************************************ */
     // map<chromosome, length>

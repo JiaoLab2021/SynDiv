@@ -94,10 +94,10 @@ int main_multiinter(int argc, char* argv[])
         exit(1);
     }
 
-    cerr << "[" << __func__ << "::" << getTime() << "] " << "Running." << endl;
+    cerr << "[" << __func__ << "::" << getTime() << "] " << "Running ..." << endl;
 
     /* ************************************ Build Syntenic Coordinates Index ************************************ */
-    cerr << "[" << __func__ << "::" << getTime() << "] " << "Build Syntenic Coordinates Index." << endl;
+    cerr << "[" << __func__ << "::" << getTime() << "] " << "Build Syntenic Coordinates Index ..." << endl;
     // 存储所有line的共线性信息
     map<string, map<string, vector<pair<int, int> > > > chrLineSynVecMap;  // map<chromosome, map<lineName, vector<pair<refStart, refEnd>>>>
     
@@ -124,7 +124,7 @@ int main_multiinter(int argc, char* argv[])
     }
 
     /* ************************************ Find intersection ************************************ */
-    cerr << "[" << __func__ << "::" << getTime() << "] " << "Find intersection." << endl;
+    cerr << "[" << __func__ << "::" << getTime() << "] " << "Find intersection ..." << endl;
     map<string, map<int, vector<tuple<int, vector<string> > > > > outChrStartEndLineVecMap;  // map<chr, map<refStart, vector<tuple<refEnd, vector<lineName>>>>>
     map<int, string> idxLineMap;
     tie(outChrStartEndLineVecMap, idxLineMap) = MULTIINTER::syn_multiinter_find(
@@ -132,14 +132,14 @@ int main_multiinter(int argc, char* argv[])
     );
 
     /* ************************************ Save The Result ************************************ */
-    cerr << "[" << __func__ << "::" << getTime() << "] " << "Saving the Result." << endl;
+    cerr << "[" << __func__ << "::" << getTime() << "] " << "Saving result ..." << endl;
     MULTIINTER::save_result(
         outChrStartEndLineVecMap, 
         idxLineMap, 
         outputFileName
     );
 
-    cerr << "[" << __func__ << "::" << getTime() << "] " << "Done." << endl;
+    cerr << "[" << __func__ << "::" << getTime() << "] " << "Done ..." << endl;
     
     return 0;
 }

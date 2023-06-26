@@ -181,11 +181,11 @@ int main_cal(int argc, char* argv[])
         exit(1);
     }
 
-    cerr << "[" << __func__ << "::" << getTime() << "] " << "Running." << endl;
+    cerr << "[" << __func__ << "::" << getTime() << "] " << "Running ..." << endl;
 
 
     /* ************************************ Change Global Parameters ************************************ */
-    cerr << "[" << __func__ << "::" << getTime() << "] " << "Change Global Parameters." << endl;
+    cerr << "[" << __func__ << "::" << getTime() << "] " << "Change Global Parameters ..." << endl;
     // print log
     cerr << "[" << __func__ << "::" << getTime() << "] " << "debug: " << debugCal << endl;
     cerr << "[" << __func__ << "::" << getTime() << "] " << "threads: " << threadsCal << endl;
@@ -198,7 +198,7 @@ int main_cal(int argc, char* argv[])
     }
 
     /* ************************************ Parse Parameters ************************************ */
-    cerr << "[" << __func__ << "::" << getTime() << "] " << "Parse Parameters." << endl;
+    cerr << "[" << __func__ << "::" << getTime() << "] " << "Parse Parameters ..." << endl;
     // 获取 aligns/syri.out 文件字典
     map<string, string> alignsMap;  // map<sampleName, alignsPath>
     map<string, map<string, string> > sampleSampleSyriMap;  // map<sample1, map<sample2, syriOutPath> >
@@ -209,7 +209,7 @@ int main_cal(int argc, char* argv[])
     );
 
     /* ************************************ Building Syntenic Coordinates Index ************************************ */
-    cerr << "[" << __func__ << "::" << getTime() << "] " << "Building Syntenic Coordinates Index." << endl;
+    cerr << "[" << __func__ << "::" << getTime() << "] " << "Building Syntenic Coordinates Index ..." << endl;
     CALNAME::SYNCOOR SynCoorTmp(coorFileName);
     SynCoorTmp.open_coor();
 
@@ -217,13 +217,13 @@ int main_cal(int argc, char* argv[])
     uint32_t allSynNum = SynCoorTmp.sampleNameVec.size() * (SynCoorTmp.sampleNameVec.size() - 1) / 2;  // n*(n-1)/2
 
     /* ************************************ Building Reference Genome Index ************************************ */
-    cerr << "[" << __func__ << "::" << getTime() << "] " << "Building Reference Genome Index." << endl;
+    cerr << "[" << __func__ << "::" << getTime() << "] " << "Building Reference Genome Index ..." << endl;
     map<string, uint32_t> refLenMap = CALNAME::build_fasta_index(
         referenceFileName
     );
 
     /* ************************************ Calculating Syntenic Diversity ************************************ */
-    cerr << "[" << __func__ << "::" << getTime() << "] " << "Calculating Syntenic Diversity." << endl;
+    cerr << "[" << __func__ << "::" << getTime() << "] " << "Calculating Syntenic Diversity ..." << endl;
     if (fastBool)
     {
         CALNAME::calculate_fast(
@@ -247,7 +247,7 @@ int main_cal(int argc, char* argv[])
         );
     }
 
-    cerr << "[" << __func__ << "::" << getTime() << "] " << "Done." << endl;
+    cerr << "[" << __func__ << "::" << getTime() << "] " << "Done ..." << endl;
     
     return 0;
 }
@@ -799,7 +799,7 @@ map<string, uint32_t> CALNAME::build_fasta_index(
         cerr << "[" << __func__ << "::" << getTime() << "] "
                 << "'"
                 << referenceFileName 
-                << "': No such file or directory." 
+                << "': No such file or directory or possibly reached the maximum open file limit. You can set 'ulimit -n' to a larger value to continue." 
                 << endl;
         exit(1);
     }
@@ -1395,7 +1395,7 @@ int CALNAME::calculate(
     }
 
     /* ********************************************** save the result ********************************************** */
-    cerr << "[" << __func__ << "::" << getTime() << "] " << "Save all computation results." << endl;
+    cerr << "[" << __func__ << "::" << getTime() << "] " << "Saving all computation results ..." << endl;
     // 总的样本数
     const uint32_t sampleNum = SynCoorTmp.sampleNameVec.size();
     // // 矫正系数
@@ -1621,7 +1621,7 @@ int CALNAME::calculate_fast(
     
 
     /* ********************************************** save the result ********************************************** */
-    cerr << "[" << __func__ << "::" << getTime() << "] " << "Save the result." << endl;
+    cerr << "[" << __func__ << "::" << getTime() << "] " << "Saving result ..." << endl;
     // 总的样本数
     const uint32_t sampleNum = SynCoorTmp.sampleNameVec.size();
     // // 矫正系数

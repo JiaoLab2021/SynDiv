@@ -113,31 +113,31 @@ int main_no_syn(int argc, char* argv[])
         exit(1);
     }
 
-    cerr << "[" << __func__ << "::" << getTime() << "] " << "Running." << endl;
+    cerr << "[" << __func__ << "::" << getTime() << "] " << "Running ..." << endl;
 
 
    /* ************************************ Build Chromosome Length Index ************************************ */
-    cerr << "[" << __func__ << "::" << getTime() << "] " << "Build Chromosome Length Index." << endl;
+    cerr << "[" << __func__ << "::" << getTime() << "] " << "Build Chromosome Length Index ..." << endl;
     NOSYN::LENGTH lengthClass(lengthsVec, lengthsTitles);
     lengthClass.index_lengths();
 
     /* ************************************ Build Syntenic Coordinates Index ************************************ */
-    cerr << "[" << __func__ << "::" << getTime() << "] " << "Build Syntenic Coordinates Index." << endl;
+    cerr << "[" << __func__ << "::" << getTime() << "] " << "Build Syntenic Coordinates Index ..." << endl;
     NOSYN::NOSYNCOOR NoSynCoor(coorFileName);
     NoSynCoor.open_coor();
 
     /* ************************************ Find no-syntenic Coordinates on query genomes ************************************ */
-    cerr << "[" << __func__ << "::" << getTime() << "] " << "Find No-syntenic Coordinates on query genomes." << endl;
+    cerr << "[" << __func__ << "::" << getTime() << "] " << "Find No-syntenic Coordinates on query genomes ..." << endl;
     NoSynCoor.find_no_syn_coor(
         lengthClass
     );
 
     /* ************************************ Save The Result ************************************ */
-    cerr << "[" << __func__ << "::" << getTime() << "] " << "Save the Result." << endl;
+    cerr << "[" << __func__ << "::" << getTime() << "] " << "Saving result ..." << endl;
     SAVE SaveClass(outputFileName);
     SaveClass.save(NoSynCoor.outTxt);  // ±£´æ
 
-    cerr << "[" << __func__ << "::" << getTime() << "] " << "Done." << endl;
+    cerr << "[" << __func__ << "::" << getTime() << "] " << "Done ..." << endl;
     
     return 0;
 }
