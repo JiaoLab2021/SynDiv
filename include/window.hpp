@@ -75,7 +75,7 @@ namespace Window
         **/
         int make_window()
         {
-            cerr << "[" << __func__ << "::" << getTime() << "] " << "Calculate the number of windows based on the input value." << endl;
+            cerr << "[" << __func__ << "::" << getTime() << "] " << "Calculate the number of windows based on the input value ..." << endl;
             cerr << "[" << __func__ << "::" << getTime() << "] " << "Window: " << windowSize_ << endl;
             cerr << "[" << __func__ << "::" << getTime() << "] " << "step: " << stepSize_ << endl;
 
@@ -218,7 +218,7 @@ namespace Window
         **/
         int win_count()
         {
-            cerr << "[" << __func__ << "::" << getTime() << "] " << "Calculate the mean score for each window." << endl;
+            cerr << "[" << __func__ << "::" << getTime() << "] " << "Calculate the mean score for each window ..." << endl;
 
             for (auto& [chromosome, WinInfoTupVec] : chrWinInfoTupVecMap_)  // map<chr, vector<tuple<start, end, score> > >
             {
@@ -242,7 +242,7 @@ namespace Window
         **/
         int save_result()
         {
-            cerr << "[" << __func__ << "::" << getTime() << "] " << "Save the results." << endl;
+            cerr << "[" << __func__ << "::" << getTime() << "] " << "Results are being saved to '" << outputFileName_ << "'" << endl;
 
             SAVE SAVEClass(outputFileName_);
 

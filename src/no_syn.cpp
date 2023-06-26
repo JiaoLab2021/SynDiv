@@ -133,7 +133,7 @@ int main_no_syn(int argc, char* argv[])
     );
 
     /* ************************************ Save The Result ************************************ */
-    cerr << "[" << __func__ << "::" << getTime() << "] " << "Saving result ..." << endl;
+    cerr << "[" << __func__ << "::" << getTime() << "] " << "Results are being saved to '" << outputFileName << "'" << endl;
     SAVE SaveClass(outputFileName);
     SaveClass.save(NoSynCoor.outTxt);  // ±£´æ
 

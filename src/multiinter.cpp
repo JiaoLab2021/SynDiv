@@ -132,7 +132,7 @@ int main_multiinter(int argc, char* argv[])
     );
 
     /* ************************************ Save The Result ************************************ */
-    cerr << "[" << __func__ << "::" << getTime() << "] " << "Saving result ..." << endl;
+    cerr << "[" << __func__ << "::" << getTime() << "] " << "Results are being saved to '" << outputFileName << "'" << endl;
     MULTIINTER::save_result(
         outChrStartEndLineVecMap, 
         idxLineMap, 
@@ -272,7 +272,7 @@ pair<map<string, map<int, vector<tuple<int, vector<string> > > > >, map<int, str
     const map<string, map<string, vector<pair<int, int> > > > & chrLineSynVecMap
 )
 {
-    cerr << "[" << __func__ << "::" << getTime() << "] " << "Searching." << endl;
+    cerr << "[" << __func__ << "::" << getTime() << "] " << "Searching ..." << endl;
     // ±£´æ½á¹û
     map<string, map<int, vector<tuple<int, vector<string> > > > > outChrStartEndLineVecMap;  // map<chr, map<refStart, vector<tuple<refEnd, vector<lineName>>>>>
 

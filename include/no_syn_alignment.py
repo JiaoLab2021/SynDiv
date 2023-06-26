@@ -180,7 +180,7 @@ class AlignmentLociClass:
         file_name_map = {key2: os.path.abspath(f"{key1}_{key2}.fa") 
                     for key2 in value1.keys()}
         file_name_loc_map = {key2: {} for key2 in value1.keys()}
-        sample_list = value1.keys()
+        sample_list = list(value1.keys())
 
         # chromosome
         chromosome = ""
@@ -209,9 +209,6 @@ class AlignmentLociClass:
         # ############### minimap2 + syri ############### #
         # Record the sample collinear with sample1, which is used to judge whether the subsequent samples need to be compared with each other
         syn_sample_dict = {}  # map<sample1, map<sample2, 0/1> >   0->noSyn  1->Syn
-
-        # Sort by sample name
-        sample_list.sort()
 
         # sample1
         for idx1, sample1 in enumerate(sample_list):
@@ -372,7 +369,7 @@ class AlignmentLociClass:
         file_name_map = {key2: os.path.abspath(f"{key1}_{key2}.fa") 
                     for key2 in value1.keys()}
         file_name_loc_map = {key2: {} for key2 in value1.keys()}
-        sample_list = value1.keys()
+        sample_list = list(value1.keys())
 
         # ############### subseq ############### #
         results = []
@@ -405,9 +402,6 @@ class AlignmentLociClass:
 
 
         # ############### minimap2 + syri ############### #
-        # Sort by sample name
-        sample_list.sort()
-
         # Store the final result of the comparison
         results = []
         

@@ -193,7 +193,7 @@ int main_coor(int argc, char* argv[])
     pool.shutdown();
     
     /* ************************************ Save The Result ************************************ */
-    cerr << "[" << __func__ << "::" << getTime() << "] " << "Saving result ..." << endl;
+    cerr << "[" << __func__ << "::" << getTime() << "] " << "Results are being saved to '" << outputFileName << "'" << endl;
     COOR::save_result(
         synLocSampleVecMap, 
         synLocVecOutMapTmpVec, 

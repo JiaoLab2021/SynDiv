@@ -71,7 +71,7 @@ int main(int argc, char** argv)
     }
     else
     {
-        cerr << "Error: ["<< argv[0] << "] command " << subcommand << " not found" << endl;
+        cerr << "Error: ["<< argv[0] << "] command " << subcommand << " not found." << endl;
         help(argv);
         return 1;
     }

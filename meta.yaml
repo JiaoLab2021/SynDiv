@@ -17,8 +17,8 @@ requirements:
     - gcc >=7.3.0
     - python =3.6
     - zlib
-    - samtools
-    - minimap2
+    - samtools >=1.15
+    - minimap2 >=2.20
     - pandas
     - numpy
     - pysam
