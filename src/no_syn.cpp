@@ -395,14 +395,14 @@ void NOSYN::NOSYNCOOR::find_no_syn_coor(
 
                     outStream << to_string(get<0>(lociVec[i])) << "-" << to_string(get<1>(lociVec[i]));
                 }
+                outStream << "\t";
             }
-            outStream << "\t";
+            outStream << "\n";
         }
-        outStream << "\n";
 
         if (outStream.tellp() >= CACHE_SIZE)  // 缓存大小为 10mb
         {
-            outTxt = outStream.str();
+            outTxt += outStream.str();
             // 清空 stringstream
             outStream.str(string());
             outStream.clear();
@@ -411,7 +411,7 @@ void NOSYN::NOSYNCOOR::find_no_syn_coor(
 
     if (outStream.tellp() >= 0)  // 最后写一次
     {
-        outTxt = outStream.str();
+        outTxt += outStream.str();
         // 清空 stringstream
         outStream.str(string());
         outStream.clear();

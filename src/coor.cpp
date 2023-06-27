@@ -182,7 +182,8 @@ int main_coor(int argc, char* argv[])
     map<string, unordered_map<string, unordered_map<int, tuple<int, int> > > > sampleChrStartSynQryLocMap;
     for (size_t i = 0; i < chrStartSynQryLocMapVec.size(); i++)
     {
-        sampleChrStartSynQryLocMap[move(chrStartSynQryLocMapVec[i].get().sampleName)] = move(chrStartSynQryLocMapVec[i].get().chrStartSynQryLocMap);
+        COOR::synAllStructure synAllStructureTmp = move(chrStartSynQryLocMapVec[i].get());
+        sampleChrStartSynQryLocMap[move(synAllStructureTmp.sampleName)] = move(synAllStructureTmp.chrStartSynQryLocMap);
     }
     chrStartSynQryLocMapVec.clear();
     vector<future<COOR::synAllStructure> >().swap(chrStartSynQryLocMapVec);
