@@ -417,14 +417,14 @@ namespace CALNAME
      * 
      * @param calOutStr                 某一样品的所有计算结果
      * @param refLenMap                 染色体长度信息  map<string, length>
-     * @param chrLociSynNumMap          保存最终的结果map<chr, map<loci, synNum> >
+     * @param chrLociSynNumMap          保存最终的结果map<chr, vector<synNum> >
      * 
      * @return 0
     **/
     int merge(
         const CALSTRUCTURE& calOutStr,
         const map<string, uint32_t> & refLenMap,
-        map<string, map<uint32_t, uint32_t> >& chrLociSynNumMap
+        map<string, vector<uint32_t> >& chrSynNumVecMap
     );
 
 
@@ -460,9 +460,9 @@ namespace CALNAME
      * @param chrLen                             染色体长度
      * @param CALSTRUCTUREVec                    多线程输出结果
      * 
-     * @return tuple<chromosome, synOutMapTmp>   map<refLoci, synNum>
+     * @return tuple<chromosome, synOutVecTmp>   tuple<chr, vector<synNum> >
     **/
-    tuple<string, map<uint32_t, uint32_t> > merge_fast(
+    tuple<string, vector<uint32_t> > merge_fast(
         string chromosome, 
         uint32_t chrLen, 
         const vector<CALSTRUCTURE> & CALSTRUCTUREVec

@@ -2,8 +2,8 @@
 
 # -*- coding: utf-8 -*-
 
-__data__ = "2023/04/24"
-__version__ = "1.0.1"
+__data__ = "2023/07/04"
+__version__ = "1.0.2"
 __author__ = "Zezhen Du"
 __email__ = "dzz0539@gmail.com or dzz0539@163.com"
 

@@ -2,8 +2,8 @@
 
 # -*- coding: utf-8 -*-
 
-__data__ = "2023/04/24"
-__version__ = "1.0.1"
+__data__ = "2023/07/04"
+__version__ = "1.0.2"
 __author__ = "Zezhen Du"
 __email__ = "dzz0539@gmail.com or dzz0539@163.com"
 
@@ -335,7 +335,7 @@ def no_syn(config_file_map, coorPath, prefix, workDir):
     # no_syn command
     cmd = f"{code_dir}SynDiv_c no_syn --coor {coorPath} "
     
-    no_synPath = os.path.join(workDir, f"{prefix}coor.out")
+    no_synPath = os.path.join(workDir, f"{prefix}no_syn.out")
     cmd += "--lengths " + " ".join(filePathList) + " -n " + " ".join(sampleNameList) + f" -o {no_synPath}"
 
     logger.error(f'CMD: {cmd}')
@@ -375,7 +375,7 @@ def cal(args, config_file_map, coorPath, no_syn_alignmentPath, workDir):
     if args.mode == "fast":
         cmd += "--fast "
     
-    calPath = os.path.join(workDir, f"{args.prefix}coor.out")
+    calPath = os.path.join(workDir, f"{args.prefix}cal.out")
     cmd += "--aligns " + " ".join(filePathList) + " -n " + " ".join(sampleNameList) + f" -o {calPath}"
 
     logger.error(f'CMD: {cmd}')

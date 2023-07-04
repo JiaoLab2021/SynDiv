@@ -17,9 +17,9 @@
 using namespace std;
 
 // define data
-#define PROGRAM_DATA "2023/04/24"
+#define PROGRAM_DATA "2023/07/04"
 // define version
-#define PROGRAM_VERSION "1.0.1"
+#define PROGRAM_VERSION "1.0.2"
 // define author
 #define PROGRAM_AUTHOR "Zezhen Du"
 // define E-mail
@@ -30,10 +30,10 @@ void help(char** argv);
 
 int main(int argc, char** argv)
 {
-    // ¼ÇÂ¼³õÊ¼Ê±¼ä
+    // ï¿½ï¿½Â¼ï¿½ï¿½Ê¼Ê±ï¿½ï¿½
     double realtime0 = realtime();
 
-    // ´òÓ¡°ïÖúÎÄµµ
+    // ï¿½ï¿½Ó¡ï¿½ï¿½ï¿½ï¿½ï¿½Äµï¿½
     if (argc == 1) {
         help(argv);
         return 1;
@@ -41,7 +41,7 @@ int main(int argc, char** argv)
 
     cerr << "[" << __func__ << "::" << getTime() << "] " << "You are using SynDiv (v" << PROGRAM_VERSION << ")\n\n";
 
-    // ×Ó¹¦ÄÜ
+    // ï¿½Ó¹ï¿½ï¿½ï¿½
     string subcommand = argv[1];
 
     if (subcommand == "-h" || subcommand == "--help")
@@ -76,13 +76,13 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    // ´òÓ¡Ê±¼äºÍÄÚ´æÊ¹ÓÃÇé¿ö
+    // ï¿½ï¿½Ó¡Ê±ï¿½ï¿½ï¿½ï¿½Ú´ï¿½Ê¹ï¿½ï¿½ï¿½ï¿½ï¿½
     fprintf(stderr, "[SynDiv::%s] Real time: %.3f sec; CPU: %.3f sec; Peak RSS: %.3f GB\n", __func__, realtime() - realtime0, cputime(), peakrss() / 1024.0 / 1024.0 / 1024.0);
     
     return 0;
 }
 
-// °ïÖúÎÄµµ
+// ï¿½ï¿½ï¿½ï¿½ï¿½Äµï¿½
 void help(char** argv)
 {
   cerr << "usage: " << argv[0] << " <command> [options]" << endl

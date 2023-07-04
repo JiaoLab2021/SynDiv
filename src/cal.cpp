@@ -1224,14 +1224,14 @@ CALNAME::CALSTRUCTURE CALNAME::calculate_run(
  * 
  * @param calOutStr                 某一样品的所有计算结果
  * @param refLenMap                 染色体长度信息  map<string, length>
- * @param chrLociSynNumMap          保存最终的结果map<chr, map<loci, synNum> >
+ * @param chrSynNumVecMap           保存最终的结果map<chr, vector<synNum> >
  * 
  * @return 0
 **/
 int CALNAME::merge(
     const CALSTRUCTURE& calOutStr,
     const map<string, uint32_t> & refLenMap,
-    map<string, map<uint32_t, uint32_t> >& chrLociSynNumMap
+    map<string, vector<uint32_t> >& chrSynNumVecMap
 )
 {
     cerr << "[" << __func__ << "::" << getTime() << "] " << "Combine the computation results of " << calOutStr.sampleName << "." << endl;
@@ -1239,7 +1239,13 @@ int CALNAME::merge(
     for(const auto& [chromosome, chrLen] : refLenMap)  // map<string, length>
     {
         // 变量绑定
-        auto& LociSynNumMap = chrLociSynNumMap[chromosome];
+        auto& SynNumVec = chrSynNumVecMap[chromosome];
+
+        // 如果第一次合并的话，先初始化SynNumVec的长度为染色体长度
+        if (SynNumVec.empty())
+        {
+            SynNumVec = vector<uint32_t>(chrLen, 0);
+        }
         
         // 染色体对应的迭代器
         map<string, map<uint32_t, uint32_t> >::const_iterator iter0 = calOutStr.sampleSynOutMap.find(chromosome);
@@ -1254,6 +1260,10 @@ int CALNAME::merge(
             iter1 = iter0->second.begin();
             iter2 = iter0->second.begin();
             iter2++;
+        }
+        else
+        {
+            continue;
         }
         
         // 记录上一个节点的 synNum
@@ -1276,7 +1286,7 @@ int CALNAME::merge(
             }
 
             // 位点频率叠加
-            LociSynNumMap[refLoci] += preSynNumTmp;
+            SynNumVec[refLoci - 1] += preSynNumTmp;
 
             // debug
             if (debugCal)
@@ -1285,10 +1295,6 @@ int CALNAME::merge(
                 {
                     cerr << chromosome << " " << refLoci << " " << calOutStr.sampleName << " " << preSynNumTmp << " " << iter3->second.at(refLoci) << endl;
                 }
-                // if (preSynNumTmp != 0 && iter3->second.find(refLoci) != iter3->second.end())
-                // {
-                //     cerr << chromosome << " " << refLoci << " " << calOutStr.sampleName << " " << preSynNumTmp << " " << iter3->second.at(refLoci) << endl;
-                // }
             }
         }
     }
@@ -1319,7 +1325,7 @@ int CALNAME::calculate(
 )
 {
     // 最终的结果
-    map<string, map<uint32_t, uint32_t> > chrLociSynNumMap;  // map<chr, map<loci, synNum> >
+    map<string, vector<uint32_t> > chrSynNumVecMap;  // map<chr, vector<synNum> >
 
     /* ********************************************** calculate syntenic diversity ********************************************** */
     // 进程池
@@ -1369,7 +1375,7 @@ int CALNAME::calculate(
             {
                 CALSTRUCTURE calOutStr = move(calOutStrFuture.get());  // future<CALSTRUCTURE>
                 // 合并结果
-                merge(calOutStr, refLenMap, chrLociSynNumMap);
+                merge(calOutStr, refLenMap, chrSynNumVecMap);
             }
             calOutStrFutureVec.clear();
             vector<future<CALSTRUCTURE> >().swap(calOutStrFutureVec);
@@ -1386,7 +1392,7 @@ int CALNAME::calculate(
         {
             CALSTRUCTURE calOutStr = move(calOutStrFuture.get());  // future<CALSTRUCTURE>
             // 合并结果
-            merge(calOutStr, refLenMap, chrLociSynNumMap);
+            merge(calOutStr, refLenMap, chrSynNumVecMap);
         }
         calOutStrFutureVec.clear();
         vector<future<CALSTRUCTURE> >().swap(calOutStrFutureVec);
@@ -1408,9 +1414,10 @@ int CALNAME::calculate(
     outStream.str().reserve(CACHE_SIZE);
     outStream << "#CHROM\tPOS\tAll_States\tSyntenic_States\tSyntenic_Diversity\n";
 
-    for (const auto& [chromosome, lociSynNumMap] : chrLociSynNumMap)  // map<chr, map<loci, synNum> >
+    for (const auto& [chromosome, SynNumVec] : chrSynNumVecMap)  // map<chr, vector<synNum> >
     {
-        for (const auto& [loci, synNum] : lociSynNumMap)  // map<loci, synNum>
+        uint32_t loci = 1;
+        for (const auto& synNum : SynNumVec)  // vector<synNum>
         {
             // outStream << chromosome << "\t" << loci << "\t" << allSynNum << "\t" 
             //         << synNum << "\t" << 1 - (synNum/(double)allSynNum)*(double)correctionFactor << "\n";
@@ -1426,6 +1433,7 @@ int CALNAME::calculate(
                 outStream.str(string());
                 outStream.clear();
             }
+            ++loci;
         }
 
         if (outStream.tellp() >= 0)  // 最后写一次
@@ -1455,16 +1463,16 @@ int CALNAME::calculate(
  * @param chrLen                             染色体长度
  * @param CALSTRUCTUREVec                    多线程输出结果
  * 
- * @return tuple<chromosome, synOutMapTmp>   map<refLoci, synNum>
+ * @return tuple<chromosome, synOutVecTmp>   tuple<chr, vector<synNum> >
 **/
-tuple<string, map<uint32_t, uint32_t> > CALNAME::merge_fast(
+tuple<string, vector<uint32_t> > CALNAME::merge_fast(
     string chromosome, 
     uint32_t chrLen, 
     const vector<CALSTRUCTURE> & CALSTRUCTUREVec
 )
 {
     // 保存结果
-    map<uint32_t, uint32_t> synOutMapTmp;  //  map<refLoci, synNum>
+    vector<uint32_t> synOutVecTmp(chrLen, 0);  //  vector<synNum>
     
     for (const auto& CALSTRUCTURETmp : CALSTRUCTUREVec) // vector<CALSTRUCTURE>
     {
@@ -1503,7 +1511,7 @@ tuple<string, map<uint32_t, uint32_t> > CALNAME::merge_fast(
             }
 
             // 位点频率叠加
-            synOutMapTmp[refLoci] += preSynNumTmp;
+            synOutVecTmp[refLoci - 1] += preSynNumTmp;
 
             // debug
             if (debugCal)
@@ -1512,15 +1520,11 @@ tuple<string, map<uint32_t, uint32_t> > CALNAME::merge_fast(
                 {
                     cerr << chromosome << " " << refLoci << " " << CALSTRUCTURETmp.sampleName << " " << preSynNumTmp << " " << iter3->second.at(refLoci) << endl;
                 }
-                // if (preSynNumTmp != 0 && iter3->second.find(refLoci) != iter3->second.end())
-                // {
-                //     cerr << chromosome << " " << refLoci << " " << CALSTRUCTURETmp.sampleName << " " << preSynNumTmp << " " << iter3->second.at(refLoci) << endl;
-                // }
             }
         }
     }
 
-    return make_tuple(chromosome, synOutMapTmp);
+    return make_tuple(chromosome, synOutVecTmp);
 }
 
 
@@ -1600,7 +1604,7 @@ int CALNAME::calculate_fast(
 
     /* ********************************************** merge the result ********************************************** */
     cerr << "[" << __func__ << "::" << getTime() << "] " << "Merge the result." << endl;
-    vector<future<tuple<string, map<uint32_t, uint32_t> > > > mergeOutVec;
+    vector<future<tuple<string, vector<uint32_t> > > > mergeOutVec;
     for (const auto& iter1 : refLenMap)  // map<chromosome, length>
     {
         string chromosome = iter1.first;
@@ -1634,20 +1638,20 @@ int CALNAME::calculate_fast(
     outStream.str().reserve(CACHE_SIZE);
     outStream << "#CHROM\tPOS\tAll_States\tSyntenic_States\tSyntenic_Diversity\n";
 
-    for (size_t i = 0; i < mergeOutVec.size(); ++i)  // vector<future<tuple<string, map<uint32_t, uint32_t> > > > 
+    for (size_t i = 0; i < mergeOutVec.size(); ++i)  // vector<future<tuple<string, vector<uint32_t> > > > 
     {
         string chromosome;
-        map<uint32_t, uint32_t> calOutMap;  // map<uint32_t, uint32_t>
+        vector<uint32_t> calOutVec;  // vector<uint32_t>
 
-        tie(chromosome, calOutMap) = move(mergeOutVec[i].get());  // 获取多线程结果
-
-        for (const auto& iter1 : calOutMap)
+        tie(chromosome, calOutVec) = move(mergeOutVec[i].get());  // 获取多线程结果
+        uint32_t loci = 1;
+        for (const auto& iter1 : calOutVec)
         {
             // outStream << chromosome << "\t" << iter1.first << "\t" << allSynNum << "\t" 
             //         << iter1.second << "\t" << 1.0 - (iter1.second/(double)allSynNum)*(double)correctionFactor << "\n";
 
-            outStream << chromosome << "\t" << iter1.first << "\t" << allSynNum << "\t" 
-                    << iter1.second << "\t" << 1.0 - iter1.second/(double)allSynNum << "\n";
+            outStream << chromosome << "\t" << loci << "\t" << allSynNum << "\t" 
+                    << iter1 << "\t" << 1.0 - iter1/(double)allSynNum << "\n";
 
             if (outStream.tellp() >= CACHE_SIZE)  // 缓存大小为 10mb
             {
@@ -1657,6 +1661,7 @@ int CALNAME::calculate_fast(
                 outStream.str(string());
                 outStream.clear();
             }
+            ++loci;
         }
 
         if (outStream.tellp() >= 0)  // 最后写一次
