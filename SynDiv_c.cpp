@@ -30,10 +30,10 @@ void help(char** argv);
 
 int main(int argc, char** argv)
 {
-    // ��¼��ʼʱ��
+    // Record initial time
     double realtime0 = realtime();
 
-    // ��ӡ�����ĵ�
+    // Print help documentation
     if (argc == 1) {
         help(argv);
         return 1;
@@ -41,7 +41,7 @@ int main(int argc, char** argv)
 
     cerr << "[" << __func__ << "::" << getTime() << "] " << "You are using SynDiv (v" << PROGRAM_VERSION << ")\n\n";
 
-    // �ӹ���
+    // subcommand
     string subcommand = argv[1];
 
     if (subcommand == "-h" || subcommand == "--help")
@@ -76,13 +76,13 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    // ��ӡʱ����ڴ�ʹ�����
+    // Print time and memory usage
     fprintf(stderr, "[SynDiv::%s] Real time: %.3f sec; CPU: %.3f sec; Peak RSS: %.3f GB\n", __func__, realtime() - realtime0, cputime(), peakrss() / 1024.0 / 1024.0 / 1024.0);
     
     return 0;
 }
 
-// �����ĵ�
+// help documentation
 void help(char** argv)
 {
   cerr << "usage: " << argv[0] << " <command> [options]" << endl
