@@ -429,11 +429,11 @@ def main():
     os.chdir(args.dir)
     no_syn_alignmentPath = no_syn_alignment.main(args, config_file_map, no_synPath, os.path.join(args.dir, "no_syn_alignment"), code_path)
 
-    # ################################################# no_syn_alignment ################################################# #
+    # ################################################# cal ################################################# #
     os.chdir(args.dir)
     calPath = cal(args, config_file_map, coorPath, no_syn_alignmentPath, os.path.join(args.dir, "cal"))
     
-    # ################################################# no_syn_alignment ################################################# #
+    # ################################################# window ################################################# #
     os.chdir(args.dir)
     winPath = window(args, calPath)
 

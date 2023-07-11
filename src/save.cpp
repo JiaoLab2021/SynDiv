@@ -9,23 +9,28 @@ using namespace std;
  * @return int
 **/
 int SAVE::save(
-    string & outTxt_
+    string & outTxt
 )
 {
-    outTxt_ = strip(outTxt_, '\n');  // remove '\n'
+    outTxt = strip(outTxt, '\n');  // remove '\n'
+
+    if (outTxt.empty())
+    {
+        return 0;
+    }
 
     if (outputFileName_.find(".gz") != string::npos || outputFileName_.find(".GZ") != string::npos)
     {
-        outTxt_ += "\n";
-        gzwrite(gzfpO, outTxt_.c_str(), outTxt_.length());
+        outTxt += "\n";
+        gzwrite(gzfpO, outTxt.c_str(), outTxt.length());
     }
     else if (outputFileName_.size() > 0)
     {
-        fpO << outTxt_ << endl;
+        fpO << outTxt << endl;
     }
     else
     {
-        cout << outTxt_ << endl;
+        cout << outTxt << endl;
     }
     
     return 0;

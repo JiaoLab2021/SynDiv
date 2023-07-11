@@ -72,7 +72,8 @@ public:
             fpO.close();
         }
     }
-    int save(string & outTxt_);
+    
+    int save(string & outTxt);
 };
 
 #endif
