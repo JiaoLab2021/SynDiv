@@ -107,8 +107,6 @@ For convenience, let's assume the following file names for the input:
 * `refgenome.fa`
 * `configure.txt`
 
-`EVG` automatically selects suitable software based on the genome, mutation and sequencing data. If desired, users can also use the `"--software"` command to specify their preferred software. The default running command is as follows:
-
 ```shell
 ulimit -n 50000
 SynDiv -r refgenome.fa -c configure.txt --prefix SynDiv --jobs 80 --threads 50 &
