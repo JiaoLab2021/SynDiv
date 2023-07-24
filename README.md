@@ -96,7 +96,7 @@ Please note that the Configuration file must strictly adhere to the specified fo
 
 **Running**
 
-Before running the software, it is recommended to set the maximum number of open files using the `ulimit -n <number>` command. The maximum number of open files can be calculated based on the number of genomes ('n') and the number of threads ('t') using the following formula:
+Before running the software, it is recommended to set the maximum number of open files using the `ulimit -n <number>` command. The maximum number of open files can be calculated based on the number of genomes (`n`) and the number of threads (`t`) using the following formula:
 
 ```shell
 number = 10 + t*(2n - t - 1)
