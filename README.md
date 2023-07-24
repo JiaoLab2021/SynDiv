@@ -109,7 +109,7 @@ For convenience, let's assume the following file names for the input:
 
 ```shell
 ulimit -n 50000
-SynDiv -r refgenome.fa -c configure.txt --prefix SynDiv --jobs 80 --threads 50 &
+SynDiv -r refgenome.fa -c configure.txt &
 ```
 
 ## Citation
