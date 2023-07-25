@@ -107,6 +107,9 @@ class AlignmentLociClass:
         # All coordinates that need to be compared
         ali_loci_dict = {}  # map<chr+"_"+start, map<sample, vector<chr:start-end> > >
 
+        # Number of samples
+        sample_num = 0
+
         with open(self._ali_loci_filename) as f:
             for infos in f.readlines():
                 # skip blank line
@@ -115,6 +118,9 @@ class AlignmentLociClass:
 
                 # go string and split
                 infos_list = infos.strip().split()
+
+                if len(infos_list) - 2 > sample_num:
+                    sample_num = len(infos_list) - 2
                 
                 # If there is only one coordinate, skip that line
                 if len(infos_list) <= 3:
@@ -124,7 +130,7 @@ class AlignmentLociClass:
                 chr_tmp = infos_list[0]
 
                 # temporary key
-                key_tmp = infos_list[0] + "_" + infos_list[1]
+                key_tmp = f"{infos_list[0]}_{infos_list[1]}"
 
                 # initialize dictionary
                 ali_loci_dict[key_tmp] = {}
@@ -141,19 +147,13 @@ class AlignmentLociClass:
                     # initialize dictionary
                     ali_loci_dict[key_tmp][sample_tmp] = []
 
-                    for idx2 in range(len(loci_list)):
-                        # Skip if only one coordinate
-                        if len(loci_list[idx2].split("-")) != 2:
-                            continue
-
-                        # record coordinates   map<sample, vector<chr:start-end>
-                        ali_loci_dict[key_tmp][sample_tmp].append(chr_tmp + ":" + loci_list[idx2])
+                    # Skip if only one coordinate. record coordinates   map<sample, vector<chr:start-end>
+                    ali_loci_dict[key_tmp][sample_tmp] = [f"{chr_tmp}:{loci}" for loci in loci_list if len(loci.split("-")) == 2]
 
         # Split ali_loci_dict into two dictionaries with long and short columns using dictionary comprehensions and conditional expressions
-        import math
-        threshold_number = (-1 + math.sqrt(1 + 8 * max(1, self._args.jobs * 100))) / 2  # y = (x * (x + 1)) / 2    x = (-1 + sqrt(1 + 8 * y)) / 2
-        self._long_ali_loci_dict = {k: v for k, v in ali_loci_dict.items() if len(v) > threshold_number}
-        self._short_ali_loci_dict = {k: v for k, v in ali_loci_dict.items() if len(v) <= threshold_number}
+        threshold = sample_num * 0.8
+        self._long_ali_loci_dict = {k: v for k, v in ali_loci_dict.items() if len(v) > threshold}
+        self._short_ali_loci_dict = {k: v for k, v in ali_loci_dict.items() if len(v) <= threshold}
         # print quantity
         logger.error(f'Number of tasks running in parallel by column: {len(self._long_ali_loci_dict)}')
         logger.error(f'Number of tasks running in parallel by row: {len(self._short_ali_loci_dict)}')
