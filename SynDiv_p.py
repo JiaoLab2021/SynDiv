@@ -54,9 +54,9 @@ def getParser():
     # parallel parameter
     parallel_option = parser.add_argument_group(title="parallel")
     # jobs
-    parallel_option.add_argument("--jobs", dest="jobs", help="Run n jobs in parallel", type=int, default=100)
+    parallel_option.add_argument("--jobs", dest="jobs", help="Run n jobs in parallel", type=int, default=30)
     # threads
-    parallel_option.add_argument("--threads", dest="threads", help="Number of threads used by SynDiv_c", type=int, default=100)
+    parallel_option.add_argument("--threads", dest="threads", help="Number of threads used by SynDiv_c", type=int, default=10)
 
     # other
     other = parser.add_argument_group("Additional arguments")
