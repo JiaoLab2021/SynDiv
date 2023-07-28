@@ -977,7 +977,7 @@ int COOR::save_result(
         }
     }
 
-    if (outStream.tellp() >= 0)  // 最后写一次
+    if (outStream.tellp() > 0)  // 最后写一次
     {
         string outTxt = outStream.str();
         SAVEClass.save(outTxt);

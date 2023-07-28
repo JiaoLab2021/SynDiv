@@ -23,7 +23,7 @@
 using namespace std;
 
 // define parameter checking macro
-#define PARAMETER_CHECK(param, paramLen, actualLen) (strncmp(argv[i], param, min(actualLen, paramLen))== 0) && (actualLen == paramLen)
+#define PARAMETER_CHECK(param, paramLen, actualLen) ((strncmp(argv[i], param, min(actualLen, paramLen))== 0) && (actualLen == paramLen))
 
 void help_no_syn(char* argv[]);
 int main_no_syn(int argc, char* argv[]);

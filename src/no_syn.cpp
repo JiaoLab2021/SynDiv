@@ -4,7 +4,7 @@
 using namespace std;
 
 // define parameter checking macro
-#define PARAMETER_CHECK(param, paramLen, actualLen) (strncmp(argv[i], param, min(actualLen, paramLen))== 0) && (actualLen == paramLen)
+#define PARAMETER_CHECK(param, paramLen, actualLen) ((strncmp(argv[i], param, min(actualLen, paramLen))== 0) && (actualLen == paramLen))
 
 // 调试代码
 bool debugNoSyn = false;
@@ -409,7 +409,7 @@ void NOSYN::NOSYNCOOR::find_no_syn_coor(
         }
     }
 
-    if (outStream.tellp() >= 0)  // 最后写一次
+    if (outStream.tellp() > 0)  // 最后写一次
     {
         outTxt += outStream.str();
         // 清空 stringstream

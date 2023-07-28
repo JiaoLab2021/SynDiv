@@ -21,7 +21,7 @@
 using namespace std;
 
 // define parameter checking macro
-#define PARAMETER_CHECK(param, paramLen, actualLen) (strncmp(argv[i], param, min(actualLen, paramLen))== 0) && (actualLen == paramLen)
+#define PARAMETER_CHECK(param, paramLen, actualLen) ((strncmp(argv[i], param, min(actualLen, paramLen))== 0) && (actualLen == paramLen))
 
 void help_window(char* argv[]);
 int main_window(int argc, char* argv[]);
@@ -267,7 +267,7 @@ namespace Window
                     }
                 }
 
-                if (outStream.tellp() >= 0)  // 最后写一次
+                if (outStream.tellp() > 0)  // 最后写一次
                 {
                     string outTxt = outStream.str();
                     SAVEClass.save(outTxt);

@@ -19,7 +19,7 @@
 using namespace std;
 
 // define parameter checking macro
-#define PARAMETER_CHECK(param, paramLen, actualLen) (strncmp(argv[i], param, min(actualLen, paramLen))== 0) && (actualLen == paramLen)
+#define PARAMETER_CHECK(param, paramLen, actualLen) ((strncmp(argv[i], param, min(actualLen, paramLen))== 0) && (actualLen == paramLen))
 
 // 全局变量
 extern int thresholdLength;  // 共线性坐标ref和qry长度比阈值

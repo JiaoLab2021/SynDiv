@@ -1,0 +1,7 @@
+An-1	genome/An-1.fa	aligns/An-1.aligns	syri/An-1.syri.out
+C24	genome/C24.fa	aligns/C24.aligns	syri/C24.syri.out
+Cvi	genome/Cvi.fa	aligns/Cvi.aligns	syri/Cvi.syri.out
+Eri	genome/Eri.fa	aligns/Eri.aligns	syri/Eri.syri.out
+Kyo	genome/Kyo.fa	aligns/Kyo.aligns	syri/Kyo.syri.out
+Ler	genome/Ler.fa	aligns/Ler.aligns	syri/Ler.syri.out
+Sha	genome/Sha.fa	aligns/Sha.aligns	syri/Sha.syri.out

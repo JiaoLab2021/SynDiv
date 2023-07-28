@@ -3,41 +3,41 @@
 
 using namespace std;
 
-// 调试代码
+// debug code
 bool debugCal = false;
 
-// 线程数
+// Threads
 int threadsCal = 30;
 
-// 读取文件的缓存大小
+// Cache size for reading files
 int32_t readBuffer = 1;
 
 // define parameter checking macro
-#define PARAMETER_CHECK(param, paramLen, actualLen) (strncmp(argv[i], param, min(actualLen, paramLen))== 0) && (actualLen == paramLen)
+#define PARAMETER_CHECK(param, paramLen, actualLen) ((strncmp(argv[i], param, min(actualLen, paramLen))== 0) && (actualLen == paramLen))
 
 void help_cal(char* argv[]);
 
 int main_cal(int argc, char* argv[])
 {
-    // 参考基因组
+    // reference genome
     string referenceFileName;
 
-    // 共线性坐标
+    // collinear coordinates
     string coorFileName;
 
-    // syri输出的配置文件
+    // Configuration file output by syri
     string syriConfigFileName;
 
-    // 与参考基因组的 aligns 文件
+    // aligns file with the reference genome
     vector<string> alignsVec;
     vector<string> alignsTitles;
-    // 判断是否有 titlename
+    // Determine whether there is a titlename
     bool haveTitles = false;
 
-    // 输出文件名
+    // output filename
     string outputFileName;
 
-    // 软件是否运行快速模式
+    // Whether the software runs in express mode
     bool fastBool = false;
 
     //Parse command line options
@@ -579,7 +579,7 @@ uint32_t CALNAME::COORTRANS::find_loci(
     while (chr != chr_ && !endBool)
     {
         findChrBool = false;  // 记录不是需要的染色体
-        next_loci();  // 下一行
+        next_loci();  // next line
     }
     findChrBool = true;  // 记录是需要的染色体
     // 如果遍历完，返回 '0'
@@ -592,7 +592,7 @@ uint32_t CALNAME::COORTRANS::find_loci(
     while (aliRefEnd < refLoci_ && !endBool)  // 上边已经判断了染色体是否相符，所以此处不用判断
     {
         aliBool = false;  // 记录不是要的 align
-        next_loci();  // 下一行
+        next_loci();  // next line
     }
     aliBool = true;  // 记录是要的 align
     // 如果遍历完，返回 '0'
@@ -604,7 +604,7 @@ uint32_t CALNAME::COORTRANS::find_loci(
     // 文件指针指向想要的行
     while (refEnd < refLoci_ && !endBool)  // 上边已经判断了染色体是否相符，所以此处不用判断
     {
-        next_loci();  // 下一行
+        next_loci();  // next line
     }
     // 如果遍历完，返回 '0'
     if (endBool)
@@ -732,42 +732,34 @@ int CALNAME::SYRIOUT::find_loci(
     uint32_t refLoci_
 )
 {
-    /* ***************************** 遍历完，返回 ‘-1’ ***************************** */
-    if (endBool)
-    {
+    /* ***************************** After traversing, return '-1' ***************************** */
+    if (endBool) {
         return -1;
     }
     
-    /* ***************************** 没有遍历完 ***************************** */
-    // 判断染色体是不是想要的
-    while (chr != chr_ && !endBool)
-    {
-        next_loci();  // 下一行
+    /* ***************************** not traversed ***************************** */
+    // Determine whether the chromosome is desired
+    while (chr != chr_ && !endBool) {
+        next_loci();  // next line
     }
-    // 如果遍历完，返回 '-1'
-    if (endBool)
-    {
+    // If the traversal is complete, return '-1'
+    if (endBool) {
         return -1;
     }
 
-    // 判断refEnd是不是小于  'refLoci_'
-    while (refEnd < refLoci_ && !endBool)  // 上边已经判断了染色体是否相符，所以此处不用判断
-    {
-        next_loci();  // 下一行
+    // Determine whether refEnd is less than 'refLoci_'
+    while (refEnd < refLoci_ && !endBool) {  // The above has already judged whether the chromosomes match, so there is no need to judge here
+        next_loci();  // next line
     }
-    // 如果遍历完，返回 '-1'
-    if (endBool)
-    {
+    // If the traversal is complete, return '-1'
+    if (endBool) {
         return -1;
     }
 
-    // 在共线性区间
-    if (refStart <= refLoci_ && refLoci_ <= refEnd)
-    {
+    // in the collinear interval
+    if (refStart <= refLoci_ && refLoci_ <= refEnd) {
         return 1;
-    }
-    else  // 不在区间内
-    {
+    } else {  // not in range
         return 0;
     }
 
@@ -776,7 +768,7 @@ int CALNAME::SYRIOUT::find_loci(
 
 
 /**
- * @brief 构建参考基因组索引
+ * @brief Build a Reference Genome Index
  * 
  * @param referenceFileName -> refgenome
  * 
@@ -788,28 +780,27 @@ map<string, uint32_t> CALNAME::build_fasta_index(
 {
     cerr << "[" << __func__ << "::" << getTime() << "] " << "Compute the length of each chromosome in the reference genome." << endl;
 
-    map<string, uint32_t> refLenMap;  // 参考基因组长度信息
+    map<string, uint32_t> refLenMap;  // Reference Genome Length Information
 
-    // 输入文件流
+    // input file stream
     gzFile gzfp = gzopen(referenceFileName.c_str(), "rb");
 
-    // 打开文件
-    if(!gzfp)
-    {
+    // open file
+    if(!gzfp) {
+
         cerr << "[" << __func__ << "::" << getTime() << "] "
                 << "'"
                 << referenceFileName 
                 << "': No such file or directory or possibly reached the maximum open file limit. You can set 'ulimit -n' to a larger value to continue." 
                 << endl;
         exit(1);
-    }
-    else
-    {
+    } else {
+
         kseq_t *ks;
         ks = kseq_init(gzfp);
     
-        while( kseq_read(ks) >= 0 )
-        {
+        while( kseq_read(ks) > 0 ) {
+            
             string chromosome = ks->name.s;
             uint32_t chrLen = ks->seq.l;
             // string sequence = ks->seq.s;
@@ -817,7 +808,7 @@ map<string, uint32_t> CALNAME::build_fasta_index(
             refLenMap[chromosome] = chrLen;
         }
 
-        // 释放内存，关闭文件
+        // free memory, close file
         kseq_destroy(ks);
         gzclose(gzfp);
     }
@@ -833,11 +824,11 @@ map<string, uint32_t> CALNAME::build_fasta_index(
 /**
  * @brief 计算
  * 
- * @param sampleName               样品名
- * @param refLenMap                参考基因组长度
- * @param SynCoorTmp               共线性坐标
- * @param sampleSampleSyriMap      syri.out 输出路径字典
- * @param alignsMap                show-aligns 输出路径字典
+ * @param sampleName               sample name
+ * @param refLenMap                chromosome length
+ * @param SynCoorTmp               collinear coordinates
+ * @param sampleSampleSyriMap      syri.out output path dictionary
+ * @param alignsMap                show-aligns output path dictionary
  * 
  * @return CALSTRUCTURE
 **/
@@ -849,79 +840,85 @@ CALNAME::CALSTRUCTURE CALNAME::calculate_run(
     const map<string, string> & alignsMap
 )
 {
-    // 保存结果
+    // save result
     CALSTRUCTURE CALSTRUCTURETMP;
 
-    // 样品名
+    // Sample name
     CALSTRUCTURETMP.sampleName = sampleName;
 
     /* ************************************************ Find the index of sampleName ************************************************ */
-    // 找 sampleName 后一个索引
+    // Find the next index after sampleName
     vector<string>::const_iterator findResult = find(SynCoorTmp.sampleNameVec.begin(), SynCoorTmp.sampleNameVec.end(), sampleName);
     int idxTmp = distance(SynCoorTmp.sampleNameVec.begin(), findResult) + 1;
 
-    // 如果是最后一个样本，直接跳过
-    if (idxTmp > SynCoorTmp.sampleNameVec.size() - 1)
-    {
+    // If it is the last sample, just skip it
+    if (idxTmp > SynCoorTmp.sampleNameVec.size() - 1) {
         return CALSTRUCTURETMP;
     }
     
     /* ************************************************ Syntenic Coordinate ************************************************ */
-    // 共线性坐标  class的map
+    // The map of the collinear coordinate class
     map<string, SYRIOUT> SyriOutMap;  // map<sampleName, SYRIOUT>
 
-    if (sampleName != "reference")  // 参考基因组与别的比较不需要，如果到结尾了，也跳过
-    {
-        // 找sample的迭代器
+    if (sampleName != "reference") {  // It is not necessary to compare the reference genome with others. If it is at the end, skip it
+        // Find the sample iterator
         map<string, map<string, string> >::const_iterator findIter1 = sampleSampleSyriMap.find(sampleName);
-        if (findIter1 == sampleSampleSyriMap.end()) // 如果没有提交该样品对应的 syri.out 文件，报错
-        {
-            cerr << "[" << __func__ << "::" << getTime() << "] " << "Error: '" << sampleName << "' is not present in sampleSampleSyriMap." << endl;
-            exit(1);
+        if (findIter1 == sampleSampleSyriMap.end()) {  // Warn if no syri.out file for this sample is submitted
+
+            cerr << "[" << __func__ << "::" << getTime() << "] " << "Warning: '" << sampleName << "' is not present in sampleSampleSyriMap." << endl;
         }
 
-        // 从索引后样本开始判断
-        for (size_t i = idxTmp; i < SynCoorTmp.sampleNameVec.size(); i++)
-        {
+        // Judging from the post-index sample
+        for (size_t i = idxTmp; i < SynCoorTmp.sampleNameVec.size(); i++) {
             string sampleName2 = SynCoorTmp.sampleNameVec[i];
 
-            if (sampleName2 == "reference")  // 参考基因组没有 syri.out
-            {
+            if (sampleName2 == "reference") {  // Reference genome without syri.out
                 continue;
             }
 
-            // 找sample2的迭代器
+            // Due to too few coordinates or other reasons, there is no alignment result for this sample, and an empty class is constructed
+            if (findIter1 == sampleSampleSyriMap.end()) {
+                // SYRIOUT
+                SyriOutMap[sampleName2] = SYRIOUT();
+                continue;
+            }
+            
+            // Find the iterator of sample2
             map<string, string>::const_iterator findIter2 = findIter1->second.find(sampleName2);
-            if (findIter2 == findIter1->second.end()) // 如果没有提交该样品对应的 syri.out 文件，报错
-            {
-                cerr << "[" << __func__ << "::" << getTime() << "] " << "Error: Both '" << sampleName << "' and '" << sampleName2 << "' are not present in sampleSampleSyriMap." << endl;
-                exit(1);
+
+            if (findIter2 == findIter1->second.end()) {  // Warn if no syri.out file for this sample is submitted
+
+                cerr << "[" << __func__ << "::" << getTime() << "] " << "Warning: '" << sampleName << "' and '" << sampleName2 << "' are not present in sampleSampleSyriMap." << endl;
+
+                // Due to too few coordinates or other reasons, there is no alignment result for this sample, and an empty class is constructed
+                SyriOutMap[sampleName2] = SYRIOUT();  // SYRIOUT
+                continue;
             }
             string syriOutPath = findIter2->second;
 
-            // 临时结构体
+            // SYRIOUT
             SyriOutMap[sampleName2] = SYRIOUT(syriOutPath);
         }
     }
 
     /* ************************************************ Coordinate transformation ************************************************ */
-    // 坐标转换 class的map
+    // Coordinate conversion class map
     map<string, COORTRANS> CoorTransMap;  // map<sampleName, COORTRANS>
 
-    // 从索引后样本开始判断
-    for (size_t i = idxTmp - 1; i < SynCoorTmp.sampleNameVec.size(); i++)
-    {
+    // Judging from the post-index sample
+    for (size_t i = idxTmp - 1; i < SynCoorTmp.sampleNameVec.size(); i++) {
+    
         string sampleName2 = SynCoorTmp.sampleNameVec[i];
 
-        if (sampleName2 == "reference")  // 参考基因组没有 syri.out
-        {
+        if (sampleName2 == "reference") {  // The reference genome has no .aligns
+        
             continue;
         }
 
-        // 查找 aligns 路径
+        // Find the aligns path
         map<string, string>::const_iterator findIter1 = alignsMap.find(sampleName2);
-        if (findIter1 == alignsMap.end()) // 如果没有提交该样品对应的 aligns 文件，报错
-        {
+        if (findIter1 == alignsMap.end()) {  // If the aligns file corresponding to the sample is not submitted, an error will be reported
+        
             cerr << "[" << __func__ << "::" << getTime() << "] " << "Error: '" << sampleName2 << "' cannot be found in alignsMap." << endl;
             exit(1);
         }
@@ -931,82 +928,82 @@ CALNAME::CALSTRUCTURE CALNAME::calculate_run(
     }
 
     /* ************************************************ Calculate syntenic diversity ************************************************ */
-    // 记录每条染色体最后一个坐标，用于判断是否到达染色体末尾
+    // Record the last coordinate of each chromosome to judge whether it has reached the end of the chromosome
     map<string, uint32_t> refChrMapTmp;  // map<chr, length>
 
-    // 遍历总的坐标哈希表
-    for (const auto& iter1 : SynCoorTmp.coorChrLociSampleLociMap)  // map<refChr, map<refStart, map<sample, tuple(start, end)> > >
-    {
-        // 染色体号
+    // Traverse the total coordinate hash table
+    for (const auto& iter1 : SynCoorTmp.coorChrLociSampleLociMap) {  // map<refChr, map<refStart, map<sample, tuple(start, end)> > >
+    
+        // chromosome
         string chrTmp = iter1.first;
 
-        // 初始化字典
+        // initialize dictionary
         auto& sampleSynOutMap = CALSTRUCTURETMP.sampleSynOutMap[chrTmp];
         auto& sampleSynOutMapTmp =  CALSTRUCTURETMP.sampleSynOutMapTmp[chrTmp];
 
-        // 记录上一个坐标
+        // record last coordinate
         uint32_t refEndTmp = 0;
 
-        // 记录上一个 refLoci 的共线性得分，如果一样，则不存储。减少内存消耗
+        // Record the collinearity score of the last refLoci, if it is the same, it will not be stored. Reduce memory consumption
         uint32_t preSynNum = 0;
 
-        for(const auto& [refStart, SampleLociMap] : iter1.second)  // map<refStart, map<sample, tuple(start, end)> >
-        {
-            // 该行的起始和终止
+        for(const auto& [refStart, SampleLociMap] : iter1.second) {  // map<refStart, map<sample, tuple(start, end)> >
+        
+            // start and end of the line
             uint32_t refEnd = get<1>(SampleLociMap.at("reference"));
 
-            // 记录共线性的终止坐标
+            // End coordinates for record collinearity
             refChrMapTmp[chrTmp] = refEnd;
 
-            // 如果和上一个坐标有间隔
-            if (refStart - refEndTmp > 1)
-            {
-                for (size_t refLoci = refEndTmp + 1; refLoci < refStart; refLoci++)
-                {
-                    uint32_t synNumTmp = 0;  // 共线性数量，临时
+            // If there is a distance from the previous coordinate
+            if (refStart - refEndTmp > 1) {
+            
+                for (size_t refLoci = refEndTmp + 1; refLoci < refStart; refLoci++) {
+                
+                    uint32_t synNumTmp = 0;  // Collinearity Quantity, Temporary
 
-                    for (size_t i = idxTmp; i < SynCoorTmp.sampleNameVec.size(); i++)
-                    {
+                    for (size_t i = idxTmp; i < SynCoorTmp.sampleNameVec.size(); i++) {
+                    
                         string sampleName2 = SynCoorTmp.sampleNameVec[i];
 
-                        // 如果是reference与大家没坐标，那就是都没坐标
-                        if (sampleName == "reference")
-                        {
+                        // If the reference has no coordinates with you, then there are no coordinates
+                        if (sampleName == "reference") {
+                        
                             continue;
                         }
                         
-                        // 如果是其它
-                        uint32_t lociA = CoorTransMap[sampleName].find_loci(chrTmp, refLoci);  // 参考基因组的坐标转到sampleName
-                        uint32_t lociB = CoorTransMap[sampleName2].find_loci(chrTmp, refLoci);  // 参考基因组的坐标转到sampleName2
+                        // if other
+                        uint32_t lociA = CoorTransMap[sampleName].find_loci(chrTmp, refLoci);  // The coordinates of the reference genome go to sampleName
+                        uint32_t lociB = CoorTransMap[sampleName2].find_loci(chrTmp, refLoci);  // The coordinates of the reference genome go to sampleName2
 
-                        if (lociA == 0 && lociB == 0) // both del
-                        {
-                            synNumTmp++;  // 记为 syn
+                        if (lociA == 0 && lociB == 0) { // both del
+                        
+                            synNumTmp++;  // denoted as syn
 
                             // debug
-                            if (debugCal)
-                            {
+                            if (debugCal) {
+                            
                                 sampleSynOutMapTmp[refLoci] += sampleName2 + ":" + to_string(lociA) + "-" + to_string(lociB) + ";";
                                 cerr << chrTmp << " " << sampleName << " " << sampleName2 << " " << refLoci << " lociA:" << lociA << " lociB:" << lociB << " syn:ture" << endl;
                             }
                         }
-                        else if (lociA != 0 && lociB == 0)  // 一个有坐标，另一个没有，one del
-                        {
+                        else if (lociA != 0 && lociB == 0) {  // One has coordinates, the other doesn't, one del
+                        
                             continue;
                         }
-                        else if (lociA == 0 && lociB != 0)  // 一个有坐标，另一个没有，one del
-                        {
+                        else if (lociA == 0 && lociB != 0) {  // One has coordinates, the other doesn't, one del
+                        
                             continue;
                         }
-                        else  // 都有坐标，再判断坐标的A和B是不是共线性
-                        {
-                            if (SyriOutMap[sampleName2].find_loci(chrTmp, lociA) > 0)  // A和B是共线性
+                        else {  // There are coordinates, and then judge whether A and B of the coordinates are collinear
+                        
+                            if (SyriOutMap[sampleName2].find_loci(chrTmp, lociA) > 0)  // A and B are collinear
                             {
-                                synNumTmp++;  // 记为 syn
+                                synNumTmp++;  // denoted as syn
 
                                 // debug
-                                if (debugCal)
-                                {
+                                if (debugCal) {
+
                                     sampleSynOutMapTmp[refLoci] += sampleName2 + ":" + to_string(lociA) + "-" + to_string(lociB) + ";";
                                     cerr << chrTmp << " " << sampleName << " " << sampleName2 << " " << refLoci << " lociA:" << lociA << " lociB:" << lociB << " syn:ture" << endl;
                                 }
@@ -1142,8 +1139,8 @@ CALNAME::CALSTRUCTURE CALNAME::calculate_run(
         uint32_t refLen = findIter1->second;  // 染色体长度
 
         // 如果到达末尾，跳出 loop
-        if (refPosTmp >= refLen)
-        {
+        if (refPosTmp >= refLen) {
+
             break;
         }
         
@@ -1324,38 +1321,38 @@ int CALNAME::calculate(
     const string & outputFileName
 )
 {
-    // 最终的结果
+    // final result
     map<string, vector<uint32_t> > chrSynNumVecMap;  // map<chr, vector<synNum> >
 
     /* ********************************************** calculate syntenic diversity ********************************************** */
-    // 进程池
+    // process pool
     ThreadPool pool(threadsCal);
-    const int MAX_THREADS_NUM = threadsCal*2;  // 多线程的vector最多存储的元素，大于时写出
+    const int MAX_THREADS_NUM = threadsCal*2;  // The most stored element in a multi-threaded vector, write out when it is greater than
 
-    // 初始化线程池
+    // init
     pool.init();
 
-    // 保存多线程的结果
+    // Save the results of multiple threads
     /*
         map<string, map<uint32_t, uint32_t> > sampleSynOutMap;  // map<chr, map<refLoci, synNum> >
         map<string, map<uint32_t, string> > sampleSynOutMapTmp;  // map<chr, map<refLoci, sampleName> >  name2:pos1-pos2;name3:pos1-pos3
     */
     vector<future<CALSTRUCTURE> > calOutStrFutureVec;
     
-    // 样品名称
-    for (const auto& iter1 : SynCoorTmp.sampleNameVec)  // vector<sampleName>
-    {
+    // sample name
+    for (const auto& iter1 : SynCoorTmp.sampleNameVec) {  // vector<sampleName>
+
         string sampleNameTmp = iter1;
 
-        // 最后一个样本跳过
-        if (sampleNameTmp == SynCoorTmp.sampleNameVec[SynCoorTmp.sampleNameVec.size() - 1])
-        {
+        // last sample skipped
+        if (sampleNameTmp == SynCoorTmp.sampleNameVec[SynCoorTmp.sampleNameVec.size() - 1]) {
+
             continue;
         }
 
         cerr << "[" << __func__ << "::" << getTime() << "] " << "Calculate: " << sampleNameTmp << endl;
 
-        // 多线程提交并保存结果
+        // Submit and save results in multiple threads
         calOutStrFutureVec.push_back(
             pool.submit(
                 calculate_run, 
@@ -1367,16 +1364,17 @@ int CALNAME::calculate(
             )
         );
 
-        // 如果calOutStrVecTmp的长度大于阈值，先写出再提交任务
-        if (calOutStrFutureVec.size() >= MAX_THREADS_NUM)
-        {
-            // 遍历多线程返回的结果
-            for (auto&& calOutStrFuture : calOutStrFutureVec)  // vector<future<CALSTRUCTURE> >
-            {
+        // If the length of calOutStrVecTmp is greater than the threshold, write it first and then submit the task
+        if (calOutStrFutureVec.size() >= MAX_THREADS_NUM) {
+
+            // Traversing the results returned by multiple threads
+            for (auto&& calOutStrFuture : calOutStrFutureVec) {  // vector<future<CALSTRUCTURE> >
+            
                 CALSTRUCTURE calOutStr = move(calOutStrFuture.get());  // future<CALSTRUCTURE>
-                // 合并结果
+                // merged result
                 merge(calOutStr, refLenMap, chrSynNumVecMap);
             }
+
             calOutStrFutureVec.clear();
             vector<future<CALSTRUCTURE> >().swap(calOutStrFutureVec);
 
@@ -1384,14 +1382,14 @@ int CALNAME::calculate(
         }
     }
 
-    // 最后合并一次结果
-    if (calOutStrFutureVec.size() >= 0)
-    {
-        // 遍历多线程返回的结果
-        for (auto&& calOutStrFuture : calOutStrFutureVec)  // vector<future<CALSTRUCTURE> >
-        {
+    // The last combined results
+    if (calOutStrFutureVec.size() > 0) {
+
+        // Traversing the results returned by multiple threads
+        for (auto&& calOutStrFuture : calOutStrFutureVec) {  // vector<future<CALSTRUCTURE> >
+        
             CALSTRUCTURE calOutStr = move(calOutStrFuture.get());  // future<CALSTRUCTURE>
-            // 合并结果
+            // merged result
             merge(calOutStr, refLenMap, chrSynNumVecMap);
         }
         calOutStrFutureVec.clear();
@@ -1402,15 +1400,15 @@ int CALNAME::calculate(
 
     /* ********************************************** save the result ********************************************** */
     cerr << "[" << __func__ << "::" << getTime() << "] " << "Results are being saved to '" << outputFileName << "'" << endl;
-    // 总的样本数
+    // total number of samples
     const uint32_t sampleNum = SynCoorTmp.sampleNameVec.size();
-    // // 矫正系数
+    // Correction factor
     // const double correctionFactor = static_cast<double> (sampleNum - 1) / sampleNum;  // (n-1)/n
 
     SAVE SAVEClass(outputFileName);
 
-    stringstream outStream; // 使用 stringstream 代替字符串拼接
-    static const uint64_t CACHE_SIZE = 1024 * 1024 * 10; // 缓存大小为 10mb
+    stringstream outStream;  // Use stringstream instead of string concatenation
+    static const uint64_t CACHE_SIZE = 1024 * 1024 * 10; // Cache size is 10mb
     outStream.str().reserve(CACHE_SIZE);
     outStream << "#CHROM\tPOS\tAll_States\tSyntenic_States\tSyntenic_Diversity\n";
 
@@ -1425,28 +1423,28 @@ int CALNAME::calculate(
             outStream << chromosome << "\t" << loci << "\t" << allSynNum << "\t" 
                     << synNum << "\t" << 1 - synNum/(double)allSynNum << "\n";
 
-            if (outStream.tellp() >= CACHE_SIZE)  // 缓存大小为 10mb
+            if (outStream.tellp() >= CACHE_SIZE)  // Cache size is 10mb
             {
                 string outTxt = outStream.str();
                 SAVEClass.save(outTxt);
-                // 清空 stringstream
+                // empty stringstream
                 outStream.str(string());
                 outStream.clear();
             }
             ++loci;
         }
 
-        if (outStream.tellp() >= 0)  // 最后写一次
+        if (outStream.tellp() > 0)  // write one last time
         {
             string outTxt = outStream.str();
             SAVEClass.save(outTxt);
-            // 清空 stringstream
+            // empty stringstream
             outStream.str(string());
             outStream.clear();
         }
     }
 
-    // 关闭线程池
+    // Close the thread pool
     pool.shutdown();
 
     return 0;
@@ -1664,7 +1662,7 @@ int CALNAME::calculate_fast(
             ++loci;
         }
 
-        if (outStream.tellp() >= 0)  // 最后写一次
+        if (outStream.tellp() > 0)  // 最后写一次
         {
             string outTxt = outStream.str();
             SAVEClass.save(outTxt);

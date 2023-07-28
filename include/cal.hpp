@@ -34,7 +34,7 @@ extern int threadsCal;
 extern int32_t readBuffer;
 
 // define parameter checking macro
-#define PARAMETER_CHECK(param, paramLen, actualLen) (strncmp(argv[i], param, min(actualLen, paramLen))== 0) && (actualLen == paramLen)
+#define PARAMETER_CHECK(param, paramLen, actualLen) ((strncmp(argv[i], param, min(actualLen, paramLen))== 0) && (actualLen == paramLen))
 
 void help_cal(char* argv[]);
 int main_cal(int argc, char* argv[]);
@@ -332,9 +332,9 @@ namespace CALNAME
         // 私有函数
         int next_loci();  // 下一个比对段的坐标
     public:
-        SYRIOUT() {}
+        SYRIOUT() : endBool(true) {}
         explicit SYRIOUT(string fileName) : 
-            fileName_(fileName), GzChunkReaderClass_(std::make_unique<GzChunkReader>(fileName_, 1024 * 1024 * readBuffer)) {}
+            fileName_(fileName), GzChunkReaderClass_(std::make_unique<GzChunkReader>(fileName_, 1024 * 1024 * readBuffer)), endBool(false) {}
 
         SYRIOUT(const SYRIOUT& other) = delete;  // 禁止拷贝构造函数
         SYRIOUT& operator=(const SYRIOUT& other) = delete;  // 禁止拷贝赋值运算符
