@@ -72,7 +72,7 @@ samtools
 minimap2
 # test
 cd test
-EVG -r test.fa -v test.vcf.gz -s sample.txt --software VG-MAP VG-Giraffe GraphAligner Paragraph BayesTyper GraphTyper2 PanGenie &>log.txt &
+nohup /usr/bin/time -v SynDiv -r genome/refgenome.fa -c configuration.txt &>log.txt &
 ```
 
 ## Usage
