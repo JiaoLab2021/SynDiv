@@ -498,15 +498,23 @@ def samtools_index(
     """
     :description:              build the genome index
     :param path:               environment variable
-    :param: config_file_map    dict{sample, {genome: "path", aligns: "path", syri_out: "path"}}
+    :param: config_file_map    dict{sample, {genome: "path", aligns: "path", syri_out: "path"}} / dict{sample, genome_path}
     :
     :return:                   0
     """
     for key1, value1 in config_file_map.items():
         # the path of genome
-        genomeFile = value1['genome']
+        genomeFile = ""
+        # Profiles submitted by SynDiv have ["genome"] key
+        try:
+            genomeFile = value1['genome']
+        # Profiles submitted by SynDiv_p don't have ["genome"] key
+        except TypeError:
+            genomeFile = value1
+
         # the path of genome idx
-        genomeIdxFile = f"{value1['genome']}.fai"
+        genomeIdxFile = f"{genomeFile}.fai"
+        
         # Check if the index file exists
         if os.path.exists(genomeIdxFile):
             continue
