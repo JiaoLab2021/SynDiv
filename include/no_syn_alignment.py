@@ -805,9 +805,7 @@ def calculate_indices(my_dict):
     dict_length = len(my_dict)
 
     # Number of tasks per process
-    if dict_length > 50000:
-        chunk_size = 500
-    elif dict_length > 10000:
+    if dict_length > 10000:
         chunk_size = 100
     elif dict_length > 5000:
         chunk_size = 50
