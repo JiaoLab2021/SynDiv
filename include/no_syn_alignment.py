@@ -800,16 +800,29 @@ def sort_result(filePath):
 
 
 # Calculates the left and right indexes of the thread pool
-def calculate_indices(total_threads, dict):
-    dict_length = len(dict)
+def calculate_indices(my_dict):
+    # Total number of tasks
+    dict_length = len(my_dict)
+
+    # Number of tasks per process
+    if dict_length > 50000:
+        chunk_size = 500
+    elif dict_length > 10000:
+        chunk_size = 100
+    elif dict_length > 5000:
+        chunk_size = 50
+    else:
+        chunk_size = 15
+    
     import math
-    chunk_size = math.ceil(dict_length / total_threads)
+    jobs_num = math.ceil(dict_length / chunk_size)
+
     thread_indices = []
 
-    for i in range(total_threads):
+    for i in range(jobs_num):
         left_index = i * chunk_size
         right_index = min((i + 1) * chunk_size - 1, dict_length - 1)
-        thread_indices.append((left_index, right_index, dict))
+        thread_indices.append((left_index, right_index, my_dict))
 
     return thread_indices
 
@@ -856,7 +869,7 @@ def main(args, config_file_map, no_synPath, workDir, code_path):
 
     # Traverse ali_loci_class._short_ali_loci_dict dictionary, multi-process
     if len(ali_loci_class._short_ali_loci_dict) > 0:
-        thread_indices = calculate_indices(args.jobs, ali_loci_class._short_ali_loci_dict)
+        thread_indices = calculate_indices(ali_loci_class._short_ali_loci_dict)
         results = pool.imap_unordered(ali_loci_class._alignment_line, thread_indices)
 
         # #################################### Save #################################### #
