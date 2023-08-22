@@ -35,7 +35,7 @@ namespace COOR
     struct synAllStructure
     {
         string sampleName;
-        unordered_map<string, unordered_map<int, tuple<int, int> > > chrStartSynQryLocMap;  // map<chr, map<synStart, tuple<qrySynStart, qrySynEnd> > >
+        unordered_map<string, unordered_map<int64_t, tuple<int64_t, int64_t> > > chrStartSynQryLocMap;  // map<chr, map<synStart, tuple<qrySynStart, qrySynEnd> > >
     };
 
 
@@ -46,7 +46,7 @@ namespace COOR
      * 
      * @return tuple<strand, start, end>
     */
-    tuple<string, int, int> get_alignment_loc(string informationTmp);
+    tuple<string, int64_t, int64_t> get_alignment_loc(string informationTmp);
 
 
     /**
@@ -63,14 +63,14 @@ namespace COOR
      * 
      * @return qrySynLoc    qry上syn的坐标， 0-没找到
     */
-    int find_qry_syn(
-        const int & synLoc, 
-        int refStart, 
-        int refEnd, 
+    int64_t find_qry_syn(
+        const int64_t & synLoc, 
+        int64_t refStart, 
+        int64_t refEnd, 
         const string & refSeq, 
         const string & AliQryStrand, 
-        int qryStart, 
-        int qryEnd, 
+        int64_t qryStart, 
+        int64_t qryEnd, 
         const string & qrySeq
     );
 
@@ -96,22 +96,22 @@ namespace COOR
      * 
      * @return qrySynLoc    qry上syn的坐标， 0-没找到
     */
-    int syn_all_loc_push(
+    int64_t syn_all_loc_push(
         synAllStructure & chrStartSynQryLocMap, 
         const string & refChr, 
-        const int & qrySynStartTmp, 
-        const int & qrySynEndTmp, 
-        const int & refStart, 
-        const int & refEnd, 
-        const int & qryStart, 
-        const int & qryEnd, 
-        const int & synStart, 
-        const int & synEnd, 
-        int & qrySynStart, 
-        int & qrySynEnd, 
+        const int64_t & qrySynStartTmp, 
+        const int64_t & qrySynEndTmp, 
+        const int64_t & refStart, 
+        const int64_t & refEnd, 
+        const int64_t & qryStart, 
+        const int64_t & qryEnd, 
+        const int64_t & synStart, 
+        const int64_t & synEnd, 
+        int64_t & qrySynStart, 
+        int64_t & qrySynEnd, 
         bool & whileBool, 
-        int & aliRowStartNum, 
-        int & aliRowEndNum
+        int64_t & aliRowStartNum, 
+        int64_t & aliRowEndNum
     );
 
 
@@ -132,13 +132,13 @@ namespace COOR
     */
     int renew_syn_loc(
         const string& sampleName, 
-        const map<string, vector<tuple<int, int, vector<string> > > >& synLocSampleVecMap, 
+        const map<string, vector<tuple<int64_t, int64_t, vector<string> > > >& synLocSampleVecMap, 
         const string& synChr, 
-        int& synIdx, 
-        int& synStart, 
-        int& synEnd, 
-        int& qrySynStart, 
-        int& qrySynEnd, 
+        int64_t& synIdx, 
+        int64_t& synStart, 
+        int64_t& synEnd, 
+        int64_t& qrySynStart, 
+        int64_t& qrySynEnd, 
         bool& whileBool
     );
 
@@ -150,7 +150,7 @@ namespace COOR
      * 
      * @return synLocSampleVecMap   map<chr, vector<tuple<refStart, refEnd, vector<sample> > > >
     */
-    map<string, vector<tuple<int, int, vector<string> > > > build_syn_idx(const string & inputFileName);
+    map<string, vector<tuple<int64_t, int64_t, vector<string> > > > build_syn_idx(const string & inputFileName);
 
 
     /**
@@ -166,7 +166,7 @@ namespace COOR
     synAllStructure get_syn_coor(
         string sampleName, 
         const string& inputFileName, 
-        const map<string, vector<tuple<int, int, vector<string> > > >& synLocSampleVecMap, 
+        const map<string, vector<tuple<int64_t, int64_t, vector<string> > > >& synLocSampleVecMap, 
         const bool& findRevBool
     );
 
@@ -181,8 +181,8 @@ namespace COOR
      * @return chrStartSynQryLocMap      synAllStructure
     */
     int save_result(
-        const map<string, vector<tuple<int, int, vector<string> > > >& synLocSampleVecMap,
-        const map<string, unordered_map<string, unordered_map<int, tuple<int, int> > > >& sampleChrStartSynQryLocMap,
+        const map<string, vector<tuple<int64_t, int64_t, vector<string> > > >& synLocSampleVecMap,
+        const map<string, unordered_map<string, unordered_map<int64_t, tuple<int64_t, int64_t> > > >& sampleChrStartSynQryLocMap,
         const string& outputFileName
     );
 }

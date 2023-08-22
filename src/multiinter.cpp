@@ -99,13 +99,13 @@ int main_multiinter(int argc, char* argv[])
     /* ************************************ Build Syntenic Coordinates Index ************************************ */
     cerr << "[" << __func__ << "::" << getTime() << "] " << "Build Syntenic Coordinates Index ..." << endl;
     // 存储所有line的共线性信息
-    map<string, map<string, vector<pair<int, int> > > > chrLineSynVecMap;  // map<chromosome, map<lineName, vector<pair<refStart, refEnd>>>>
+    map<string, map<string, vector<pair<int64_t, int64_t> > > > chrLineSynVecMap;  // map<chromosome, map<lineName, vector<pair<refStart, refEnd>>>>
     
-    int indexTmp = 0;  // 记录 lineName 的索引
+    int64_t indexTmp = 0;  // 记录 lineName 的索引
     for(auto it1 : inputFiles)
     {
         string lineName;
-        map<string, vector<pair<int, int> > > chrSynVecMap;
+        map<string, vector<pair<int64_t, int64_t> > > chrSynVecMap;
         tie(lineName, chrSynVecMap) = MULTIINTER::build_syn_index(it1);
 
         // 如果有 inputTitles 重新赋值
@@ -125,8 +125,8 @@ int main_multiinter(int argc, char* argv[])
 
     /* ************************************ Find intersection ************************************ */
     cerr << "[" << __func__ << "::" << getTime() << "] " << "Find intersection ..." << endl;
-    map<string, map<int, vector<tuple<int, vector<string> > > > > outChrStartEndLineVecMap;  // map<chr, map<refStart, vector<tuple<refEnd, vector<lineName>>>>>
-    map<int, string> idxLineMap;
+    map<string, map<int64_t, vector<tuple<int64_t, vector<string> > > > > outChrStartEndLineVecMap;  // map<chr, map<refStart, vector<tuple<refEnd, vector<lineName>>>>>
+    map<int64_t, string> idxLineMap;
     tie(outChrStartEndLineVecMap, idxLineMap) = MULTIINTER::syn_multiinter_find(
         chrLineSynVecMap
     );
@@ -169,7 +169,7 @@ void help_multiinter(char* argv[])
  * 
  * @return pair<lineName, chrSynVecMap>        pair<lineName, map<chromosome, vector<pair<refStart, refEnd>>>>
 **/
-pair<string, map<string, vector<pair<int, int> > > > MULTIINTER::build_syn_index(
+pair<string, map<string, vector<pair<int64_t, int64_t> > > > MULTIINTER::build_syn_index(
     const string & inputFileName
 )
 {
@@ -188,15 +188,15 @@ pair<string, map<string, vector<pair<int, int> > > > MULTIINTER::build_syn_index
     
     cerr << "[" << __func__ << "::" << getTime() << "] " << "Building index: " << inputFileName << " ...\n";  // print log
 
-    map<string, vector<pair<int, int> > > chrSynVecMap;  // map<chromosome, vector<pair<refStart, refEnd>>>
+    map<string, vector<pair<int64_t, int64_t> > > chrSynVecMap;  // map<chromosome, vector<pair<refStart, refEnd>>>
 
     // open file
     GzChunkReader GzChunkReaderClass(inputFileName);
 
     // 上一个共线性的坐标
     string preChromosome;
-    int PreRefStart = 0;
-    int PreRefEnd = 0;
+    int64_t PreRefStart = 0;
+    int64_t PreRefEnd = 0;
 
     // read line
     string line;
@@ -214,8 +214,8 @@ pair<string, map<string, vector<pair<int, int> > > > MULTIINTER::build_syn_index
         vector<string> lineVec(std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>());
 
         string chromosome = lineVec[0];
-        int refStart = stoi(lineVec[1]);
-        int refEnd = stoi(lineVec[2]);
+        int64_t refStart = stoll(lineVec[1]);
+        int64_t refEnd = stoll(lineVec[2]);
 
         if(preChromosome != chromosome && preChromosome.size() > 0)  // 如果换染色体了/第一条染色体略过。清零
         {
@@ -264,19 +264,19 @@ pair<string, map<string, vector<pair<int, int> > > > MULTIINTER::build_syn_index
 /**
     * @brief 找合集
     * 
-    * @param chrLineSynVecMap          map<string, map<string, vector<pair<int, int> > > >, map<chromosome, map<lineName, vector<pair<refStart, refEnd>>>>
+    * @param chrLineSynVecMap          map<string, map<string, vector<pair<int64_t, int64_t> > > >, map<chromosome, map<lineName, vector<pair<refStart, refEnd>>>>
     * 
     * @return pair(outChrStartEndLineVecMap, idxLineMap)   pair(map<chr, map<refStart, vector<tuple<refEnd, vector<lineName>>>>>, 存储line的索引和名字)
 **/
-pair<map<string, map<int, vector<tuple<int, vector<string> > > > >, map<int, string> > MULTIINTER::syn_multiinter_find(
-    const map<string, map<string, vector<pair<int, int> > > > & chrLineSynVecMap
+pair<map<string, map<int64_t, vector<tuple<int64_t, vector<string> > > > >, map<int64_t, string> > MULTIINTER::syn_multiinter_find(
+    const map<string, map<string, vector<pair<int64_t, int64_t> > > > & chrLineSynVecMap
 )
 {
     cerr << "[" << __func__ << "::" << getTime() << "] " << "Searching ..." << endl;
     // 保存结果
-    map<string, map<int, vector<tuple<int, vector<string> > > > > outChrStartEndLineVecMap;  // map<chr, map<refStart, vector<tuple<refEnd, vector<lineName>>>>>
+    map<string, map<int64_t, vector<tuple<int64_t, vector<string> > > > > outChrStartEndLineVecMap;  // map<chr, map<refStart, vector<tuple<refEnd, vector<lineName>>>>>
 
-    map<int, string> idxLineMap;  // 存储line的索引和名字
+    map<int64_t, string> idxLineMap;  // 存储line的索引和名字
 
     // 遍历染色体
     for(auto it1 : chrLineSynVecMap)  // map<chromosome, map<lineName, vector<pair<refStart, refEnd>>>>
@@ -286,10 +286,10 @@ pair<map<string, map<int, vector<tuple<int, vector<string> > > > >, map<int, str
 
         // it1.second -> map<lineName, vector<pair<refStart, refEnd>>>
 
-        int lineIdx = 0;  // lineName的索引
+        int64_t lineIdx = 0;  // lineName的索引
         
         // 将染色体对应的所有共线性列表和索引信息提取出来，并赋值第一个坐标为syn列表的第一个
-        map<string, tuple<vector<pair<int, int> >, int, pair<int, int> > > LineSynVecIdxSynMap;  // map<lineName, tuple<vector<pair<refStart, refEnd> >, index, pair<refStart, refEnd> > >
+        map<string, tuple<vector<pair<int64_t, int64_t> >, int64_t, pair<int64_t, int64_t> > > LineSynVecIdxSynMap;  // map<lineName, tuple<vector<pair<refStart, refEnd> >, index, pair<refStart, refEnd> > >
         for(auto it2 : it1.second)  // map<lineName, vector<pair<refStart, refEnd>>>
         {
             // it2.first -> lineName
@@ -303,10 +303,10 @@ pair<map<string, map<int, vector<tuple<int, vector<string> > > > >, map<int, str
 
 
         // 寻找，先构造一个临时的共线性列表，存储每个样本第一个共线性区间
-        vector<pair<int, int> > synVec;  // 存储共线性区间，找合集
+        vector<pair<int64_t, int64_t> > synVec;  // 存储共线性区间，找合集
         
-        int lineNum = idxLineMap.size();  // sample数量，用于判断是否终止循环
-        int endNum = 0;  // 用于判断是否终止while循环
+        int64_t lineNum = idxLineMap.size();  // sample数量，用于判断是否终止循环
+        int64_t endNum = 0;  // 用于判断是否终止while循环
 
         for(auto it1 : LineSynVecIdxSynMap)  // map<lineName, tuple<vector<pair<refStart, refEnd> >, index, pair<refStart, refEnd> > >
         {
@@ -333,8 +333,8 @@ pair<map<string, map<int, vector<tuple<int, vector<string> > > > >, map<int, str
             endNum = 0;  // 重置计数
 
             // 找交集
-            int outRefStart = 0;
-            int outRefEnd = 0;
+            int64_t outRefStart = 0;
+            int64_t outRefEnd = 0;
             vector<string> outLineVec;
             tie(outRefStart, outRefEnd, outLineVec) = loc_find(
                 synVec, 
@@ -358,7 +358,7 @@ pair<map<string, map<int, vector<tuple<int, vector<string> > > > >, map<int, str
 
             // 清空坐标
             synVec.clear();
-            vector<pair<int, int > >().swap(synVec);
+            vector<pair<int64_t, int64_t > >().swap(synVec);
 
             // 更新共线性索引和坐标
             for(auto it1 : LineSynVecIdxSynMap)  // map<lineName, tuple<vector<pair<refStart, refEnd> >, index, pair<refStart, refEnd> > >
@@ -367,9 +367,9 @@ pair<map<string, map<int, vector<tuple<int, vector<string> > > > >, map<int, str
                 string lineName = it1.first;
 
                 // 品种对应的共线性坐标，用于判断是否更新坐标
-                vector<pair<int, int> > lineSynVec = get<0>(it1.second);
-                int lineSynIdx = get<1>(it1.second);
-                pair<int, int> lineSycLocTmp = get<2>(it1.second);
+                vector<pair<int64_t, int64_t> > lineSynVec = get<0>(it1.second);
+                int64_t lineSynIdx = get<1>(it1.second);
+                pair<int64_t, int64_t> lineSycLocTmp = get<2>(it1.second);
 
                 // 更新坐标
                 if(lineSycLocTmp.first >= outRefEnd)  // 如果没用到该共线性区间，直接下一个品种
@@ -416,18 +416,18 @@ pair<map<string, map<int, vector<tuple<int, vector<string> > > > >, map<int, str
 /**
     * @brief 找集合_find
     * 
-    * @param synVec      vector<pair<int, int > >, vector<pair<refStart, refEnd> >
+    * @param synVec      vector<pair<int64_t, int64_t > >, vector<pair<refStart, refEnd> >
     * 
-    * @return tuple<int, int, vector<string> >  make_tuple(outStart, outEnd, lineName)
+    * @return tuple<int64_t, int64_t, vector<string> >  make_tuple(outStart, outEnd, lineName)
 **/
-tuple<int, int, vector<string> > MULTIINTER::loc_find(
-    const vector<pair<int, int > > synVec, 
-    const map<int, string> & idxLineMap
+tuple<int64_t, int64_t, vector<string> > MULTIINTER::loc_find(
+    const vector<pair<int64_t, int64_t > > synVec, 
+    const map<int64_t, string> & idxLineMap
 )
 {
     // 共线性区间
-    int outStart = INT_MAX;
-    int outEnd = INT_MAX;
+    int64_t outStart = INT_MAX;
+    int64_t outEnd = INT_MAX;
 
     vector<string> lineNameVec;  // 共线性区间对应的品种索引
     
@@ -456,7 +456,7 @@ tuple<int, int, vector<string> > MULTIINTER::loc_find(
     }
     
 
-    int lineIdx = 0;
+    int64_t lineIdx = 0;
     for(auto it1 : synVec)  // 找最小区间对应的品种信息
     {
         if(it1.first == 0 && it1.second == 0)  // 如果都为0代表这个line循环完毕
@@ -495,11 +495,11 @@ tuple<int, int, vector<string> > MULTIINTER::loc_find(
     * @param idxLineMap                  map<index, lineName>
     * @param outputName                  输出文件名
     * 
-    * @return tuple<int, int, vector<string> >  make_tuple(outStart, outEnd, lineName)
+    * @return tuple<int64_t, int64_t, vector<string> >  make_tuple(outStart, outEnd, lineName)
 **/
 int MULTIINTER::save_result(
-    const map<string, map<int, vector<tuple<int, vector<string> > > > > & outChrStartEndLineVecMap, 
-    map<int, string> idxLineMap, 
+    const map<string, map<int64_t, vector<tuple<int64_t, vector<string> > > > > & outChrStartEndLineVecMap, 
+    map<int64_t, string> idxLineMap, 
     const string & outputName
 )
 {
@@ -526,7 +526,7 @@ int MULTIINTER::save_result(
                 outStream << it1.first << "\t" << to_string(it2.first) << "\t" + to_string(get<0>(it3)) << "\t" << to_string(get<1>(it3).size()) << "\t";
 
                 // 共线性含有的品种名字索引
-                int idxTmp=0;
+                int64_t idxTmp=0;
 
                 // 输出(第五列及之后的内容)
                 vector<string> lineNameVecTmp;

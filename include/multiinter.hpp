@@ -33,7 +33,7 @@ namespace MULTIINTER
      * 
      * @return pair<lineName, chrSynVecMap>        pair<lineName, map<chromosome, vector<pair<refStart, refEnd>>>>
     **/
-    pair<string, map<string, vector<pair<int, int> > > > build_syn_index(
+    pair<string, map<string, vector<pair<int64_t, int64_t> > > > build_syn_index(
         const string & inputFileName
     );
 
@@ -41,25 +41,25 @@ namespace MULTIINTER
     /**
         * @brief 找合集
         * 
-        * @param chrLineSynVecMap          map<string, map<string, vector<pair<int, int> > > >, map<chromosome, map<lineName, vector<pair<refStart, refEnd>>>>
+        * @param chrLineSynVecMap          map<string, map<string, vector<pair<int64_t, int64_t> > > >, map<chromosome, map<lineName, vector<pair<refStart, refEnd>>>>
         * 
         * @return pair(outChrStartEndLineVecMap, idxLineMap)   pair(map<chr, map<refStart, vector<tuple<refEnd, vector<lineName>>>>>, 存储line的索引和名字)
     **/
-    pair<map<string, map<int, vector<tuple<int, vector<string> > > > >, map<int, string> > syn_multiinter_find(
-        const map<string, map<string, vector<pair<int, int> > > > & chrLineSynVecMap
+    pair<map<string, map<int64_t, vector<tuple<int64_t, vector<string> > > > >, map<int64_t, string> > syn_multiinter_find(
+        const map<string, map<string, vector<pair<int64_t, int64_t> > > > & chrLineSynVecMap
     );
     
 
     /**
         * @brief 找集合_find
         * 
-        * @param synVec      vector<pair<int, int > >, vector<pair<refStart, refEnd> >
+        * @param synVec      vector<pair<int64_t, int64_t > >, vector<pair<refStart, refEnd> >
         * 
-        * @return tuple<int, int, vector<string> >  make_tuple(outStart, outEnd, lineName)
+        * @return tuple<int64_t, int64_t, vector<string> >  make_tuple(outStart, outEnd, lineName)
     **/
-    tuple<int, int, vector<string> > loc_find(
-        const vector<pair<int, int > > synVec, 
-        const map<int, string> & idxLineMap
+    tuple<int64_t, int64_t, vector<string> > loc_find(
+        const vector<pair<int64_t, int64_t > > synVec, 
+        const map<int64_t, string> & idxLineMap
     );
 
 
@@ -70,11 +70,11 @@ namespace MULTIINTER
         * @param idxLineMap                  map<index, lineName>
         * @param outputName                  输出文件名
         * 
-        * @return tuple<int, int, vector<string> >  make_tuple(outStart, outEnd, lineName)
+        * @return tuple<int64_t, int64_t, vector<string> >  make_tuple(outStart, outEnd, lineName)
     **/
     int save_result(
-        const map<string, map<int, vector<tuple<int, vector<string> > > > > & outChrStartEndLineVecMap, 
-        map<int, string> idxLineMap, 
+        const map<string, map<int64_t, vector<tuple<int64_t, vector<string> > > > > & outChrStartEndLineVecMap, 
+        map<int64_t, string> idxLineMap, 
         const string & outputName
     );
 

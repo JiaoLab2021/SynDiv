@@ -134,7 +134,7 @@ int main_coor(int argc, char* argv[])
     
     /* ************************************ Build Syntenic Coordinates Index ************************************ */
     cerr << "[" << __func__ << "::" << getTime() << "] " << "Build Syntenic Coordinates Index ..." << endl;
-    map<string, vector<tuple<int, int, vector<string> > > > synLocSampleVecMap;  // map<chr, vector<tuple<refStart, refEnd, vector<sample> > > >
+    map<string, vector<tuple<int64_t, int64_t, vector<string> > > > synLocSampleVecMap;  // map<chr, vector<tuple<refStart, refEnd, vector<sample> > > >
     synLocSampleVecMap = COOR::build_syn_idx(
         synLocFileName
     );
@@ -151,7 +151,7 @@ int main_coor(int argc, char* argv[])
     vector<future<COOR::synAllStructure> > chrStartSynQryLocMapVec;
 
     // 获取共线性在qry上的坐标
-    int indexTmp = 0;  // 记录样品名的索引
+    int64_t indexTmp = 0;  // 记录样品名的索引
     for (auto it : inputFiles)
     {
         cerr << "[" << __func__ << "::" << getTime() << "] " << "get_syn_coor: " << it << endl;
@@ -179,7 +179,7 @@ int main_coor(int argc, char* argv[])
     }
 
     // 多线程结果保存
-    map<string, unordered_map<string, unordered_map<int, tuple<int, int> > > > sampleChrStartSynQryLocMap;
+    map<string, unordered_map<string, unordered_map<int64_t, tuple<int64_t, int64_t> > > > sampleChrStartSynQryLocMap;
     for (size_t i = 0; i < chrStartSynQryLocMapVec.size(); i++)
     {
         COOR::synAllStructure synAllStructureTmp = move(chrStartSynQryLocMapVec[i].get());
@@ -232,12 +232,12 @@ void help_coor(char* argv[])
  * 
  * @return tuple<strand, start, end>
 */
-tuple<string, int, int> COOR::get_alignment_loc(string informationTmp)
+tuple<string, int64_t, int64_t> COOR::get_alignment_loc(string informationTmp)
 {
     // 获取比对方向，起始和终止的信息
     istringstream iss(informationTmp);  // +1 278 - 1703
     string strandTmp;
-    int startTmp, endTmp;
+    int64_t startTmp, endTmp;
     char sep;
 
     iss >> strandTmp >> startTmp >> sep >> endTmp;
@@ -265,22 +265,22 @@ tuple<string, int, int> COOR::get_alignment_loc(string informationTmp)
  * 
  * @return qrySynLoc    qry上syn的坐标， 0-没找到
 */
-int COOR::find_qry_syn(
-    const int & synLoc, 
-    int refStart, 
-    int refEnd, 
+int64_t COOR::find_qry_syn(
+    const int64_t & synLoc, 
+    int64_t refStart, 
+    int64_t refEnd, 
     const string & refSeq, 
     const string & AliQryStrand, 
-    int qryStart, 
-    int qryEnd, 
+    int64_t qryStart, 
+    int64_t qryEnd, 
     const string & qrySeq
 )
 {
-    int qrySynLoc = 0;
+    int64_t qrySynLoc = 0;
 
     if (refStart <= synLoc && synLoc <= refEnd)  // 如果包含了共线性坐标
     {
-        int iIdx = 0;  // 记录synStart对应的位置
+        int64_t iIdx = 0;  // 记录synStart对应的位置
 
         --refStart;  // 坐标先减1
         for (size_t i = 0; i < refSeq.size(); ++i)  // 循环ref序列
@@ -358,22 +358,22 @@ int COOR::find_qry_syn(
  * 
  * @return qrySynLoc    qry上syn的坐标， 0-没找到
 */
-int COOR::syn_all_loc_push(
+int64_t COOR::syn_all_loc_push(
     synAllStructure & chrStartSynQryLocMap, 
     const string & refChr, 
-    const int & qrySynStartTmp, 
-    const int & qrySynEndTmp, 
-    const int & refStart, 
-    const int & refEnd, 
-    const int & qryStart, 
-    const int & qryEnd, 
-    const int & synStart, 
-    const int & synEnd, 
-    int & qrySynStart, 
-    int & qrySynEnd, 
+    const int64_t & qrySynStartTmp, 
+    const int64_t & qrySynEndTmp, 
+    const int64_t & refStart, 
+    const int64_t & refEnd, 
+    const int64_t & qryStart, 
+    const int64_t & qryEnd, 
+    const int64_t & synStart, 
+    const int64_t & synEnd, 
+    int64_t & qrySynStart, 
+    int64_t & qrySynEnd, 
     bool & whileBool, 
-    int & aliRowStartNum, 
-    int & aliRowEndNum
+    int64_t & aliRowStartNum, 
+    int64_t & aliRowEndNum
 )
 {
     whileBool = false;
@@ -413,8 +413,8 @@ int COOR::syn_all_loc_push(
         }
 
         // 大于0了再赋值，比对长度相差倍数小于thresholdLength了再赋值
-        int refSynLen = abs(synEnd - synStart);
-        int qrySynLen = abs(qrySynEnd - qrySynStart);
+        int64_t refSynLen = abs(synEnd - synStart);
+        int64_t qrySynLen = abs(qrySynEnd - qrySynStart);
         if (qrySynEnd > 0 && max(refSynLen, qrySynLen)/(float)min(refSynLen, qrySynLen) < thresholdLength) {
             chrStartSynQryLocMap.chrStartSynQryLocMap[refChr][synStart] = make_tuple(
                 min(qrySynStart, qrySynEnd), 
@@ -457,20 +457,20 @@ int COOR::syn_all_loc_push(
 */
 int COOR::renew_syn_loc(
     const string& sampleName, 
-    const map<string, vector<tuple<int, int, vector<string> > > >& synLocSampleVecMap, 
+    const map<string, vector<tuple<int64_t, int64_t, vector<string> > > >& synLocSampleVecMap, 
     const string& synChr, 
-    int& synIdx, 
-    int& synStart, 
-    int& synEnd, 
-    int& qrySynStart, 
-    int& qrySynEnd, 
+    int64_t& synIdx, 
+    int64_t& synStart, 
+    int64_t& synEnd, 
+    int64_t& qrySynStart, 
+    int64_t& qrySynEnd, 
     bool& whileBool
 )
 {
-    map<string, vector<tuple<int, int, vector<string> > > >::const_iterator findIter = synLocSampleVecMap.find(synChr);  //  在共线性map中找染色体
+    map<string, vector<tuple<int64_t, int64_t, vector<string> > > >::const_iterator findIter = synLocSampleVecMap.find(synChr);  //  在共线性map中找染色体
     if (findIter != synLocSampleVecMap.end())  // 找到了
     {
-        auto& synLocSampleVec = findIter->second;  // vector<tuple<int, int, vector<string> > >
+        auto& synLocSampleVec = findIter->second;  // vector<tuple<int64_t, int64_t, vector<string> > >
 
         if (synIdx < synLocSampleVec.size())  // 防止越界
         {
@@ -521,10 +521,10 @@ int COOR::renew_syn_loc(
  * 
  * @return synLocSampleVecMap   map<chr, vector<tuple<refStart, refEnd, vector<sample> > > >
 */
-map<string, vector<tuple<int, int, vector<string> > > > COOR::build_syn_idx(const string & inputFileName)
+map<string, vector<tuple<int64_t, int64_t, vector<string> > > > COOR::build_syn_idx(const string & inputFileName)
 {
     // 保存共线性坐标
-    map<string, vector<tuple<int, int, vector<string> > > > synLocSampleVecMap;  // map<chr, vector<tuple<refStart, refEnd, vector<sample> > > >
+    map<string, vector<tuple<int64_t, int64_t, vector<string> > > > synLocSampleVecMap;  // map<chr, vector<tuple<refStart, refEnd, vector<sample> > > >
 
     // open syntenic coordinations file
     GzChunkReader GzChunkReaderClass(inputFileName);
@@ -543,7 +543,7 @@ map<string, vector<tuple<int, int, vector<string> > > > COOR::build_syn_idx(cons
         std::istringstream iss(line);
         vector<string> lineVec(std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>());
 
-        synLocSampleVecMap[lineVec[0]].push_back(make_tuple(stoi(lineVec[1]), stoi(lineVec[2]), split(lineVec[4], ",")));  // 存储共线性在ref上的坐标以及该位点的样品名称
+        synLocSampleVecMap[lineVec[0]].push_back(make_tuple(stoll(lineVec[1]), stoll(lineVec[2]), split(lineVec[4], ",")));  // 存储共线性在ref上的坐标以及该位点的样品名称
     }
 
     return synLocSampleVecMap;
@@ -563,7 +563,7 @@ map<string, vector<tuple<int, int, vector<string> > > > COOR::build_syn_idx(cons
 COOR::synAllStructure COOR::get_syn_coor(
     string sampleName, 
     const string& inputFileName, 
-    const map<string, vector<tuple<int, int, vector<string> > > >& synLocSampleVecMap, 
+    const map<string, vector<tuple<int64_t, int64_t, vector<string> > > >& synLocSampleVecMap, 
     const bool& findRevBool
 )
 {
@@ -594,12 +594,12 @@ COOR::synAllStructure COOR::get_syn_coor(
     
     // 临时的syn坐标
     string synChr = "";
-    int synIdx = 0;  // 用于提取共线性的坐标
-    int synStart = 0;
-    int synEnd = 0;
+    int64_t synIdx = 0;  // 用于提取共线性的坐标
+    int64_t synStart = 0;
+    int64_t synEnd = 0;
     // 存储qry上syn的坐标
-    int qrySynStart;
-    int qrySynEnd;
+    int64_t qrySynStart;
+    int64_t qrySynEnd;
 
     // 临时的染色体号和坐标
     string refChr = "";
@@ -607,22 +607,22 @@ COOR::synAllStructure COOR::get_syn_coor(
     // alignmenmt的信息
     string AliRefStrand = "";
     string AliQryStrand = "";
-    int aliRefStart = 0;
-    int aliRefEnd = 0;
-    int aliQryStart = 0;
-    int aliQryEnd = 0;
+    int64_t aliRefStart = 0;
+    int64_t aliRefEnd = 0;
+    int64_t aliQryStart = 0;
+    int64_t aliQryEnd = 0;
     // 用于判断是否循环该条alignment的布尔值  (false)
     bool aliBool = false;
     // 用于记录syn的坐标在该alignment的第几行
-    int aliRowStartNum = 0;
-    int aliRowEndNum = INT32_MAX;
+    int64_t aliRowStartNum = 0;
+    int64_t aliRowEndNum = INT64_MAX;
 
     // 具体行的信息
-    int refStart = 0;
-    int refEnd = 0;
+    int64_t refStart = 0;
+    int64_t refEnd = 0;
     string refSeq = "";
-    int qryStart = 0;
-    int qryEnd = 0;
+    int64_t qryStart = 0;
+    int64_t qryEnd = 0;
     string qrySeq = "";
 
     // 构造的临时bool值，不使用，只是作为参数提交
@@ -632,7 +632,7 @@ COOR::synAllStructure COOR::get_syn_coor(
     GzChunkReader GzChunkReaderClass(inputFileName);
 
     // 记录循环的索引  偶数->ref  奇数->qry
-    int forIdx = -1;
+    int64_t forIdx = -1;
 
     // read line
     string line;
@@ -698,16 +698,16 @@ COOR::synAllStructure COOR::get_syn_coor(
 
                 // 获取比对方向，起始和终止的信息  ref
                 string AliRefStrandTmp;
-                int aliRefStartTmp;
-                int aliRefEndTmp;
+                int64_t aliRefStartTmp;
+                int64_t aliRefEndTmp;
                 tie(AliRefStrandTmp, aliRefStartTmp, aliRefEndTmp) = get_alignment_loc(
                     lineVec[0]
                 );
 
                 // 获取比对方向，起始和终止的信息  qry
                 string AliQryStrandTmp;
-                int aliQryStartTmp;
-                int aliQryEndTmp;
+                int64_t aliQryStartTmp;
+                int64_t aliQryEndTmp;
                 tie(AliQryStrandTmp, aliQryStartTmp, aliQryEndTmp) = get_alignment_loc(
                     lineVec[1]
                 );
@@ -776,12 +776,12 @@ COOR::synAllStructure COOR::get_syn_coor(
                     refSeqTmp.erase(remove(refSeqTmp.begin(), refSeqTmp.end(), '.'), refSeqTmp.end());
                     if (AliRefStrand == "+1")  // 正向比对
                     {
-                        refStart = stoi(lineVec[0]);
+                        refStart = stoll(lineVec[0]);
                         refEnd = refStart + refSeqTmp.size() - 1;
                     }
                     else  // 反向比对
                     {
-                        refEnd = stoi(lineVec[0]);
+                        refEnd = stoll(lineVec[0]);
                         refStart = refEnd - refSeqTmp.size() + 1;
                     }
                 }
@@ -795,12 +795,12 @@ COOR::synAllStructure COOR::get_syn_coor(
                     qrySeqTmp.erase(remove(qrySeqTmp.begin(), qrySeqTmp.end(), '.'), qrySeqTmp.end());
                     if (AliQryStrand == "+1")  // 正向比对
                     {
-                        qryStart = stoi(lineVec[0]);
+                        qryStart = stoll(lineVec[0]);
                         qryEnd = qryStart + qrySeqTmp.size() - 1;
                     }
                     else  // 反向比对
                     {
-                        qryEnd = stoi(lineVec[0]);
+                        qryEnd = stoll(lineVec[0]);
                         qryStart = qryEnd - qrySeqTmp.size() + 1;
                     }
                     
@@ -838,7 +838,7 @@ COOR::synAllStructure COOR::get_syn_coor(
                             (refStart <= synEnd && synEnd <= refEnd)) &&
                             whileBool)
                     {
-                        int qrySynStartTmp = find_qry_syn(
+                        int64_t qrySynStartTmp = find_qry_syn(
                             synStart, 
                             refStart, 
                             refEnd, 
@@ -849,7 +849,7 @@ COOR::synAllStructure COOR::get_syn_coor(
                             qrySeq
                         );
 
-                        int qrySynEndTmp = find_qry_syn(
+                        int64_t qrySynEndTmp = find_qry_syn(
                             synEnd, 
                             refStart, 
                             refEnd, 
@@ -924,8 +924,8 @@ COOR::synAllStructure COOR::get_syn_coor(
  * @return chrStartSynQryLocMap      synAllStructure
 */
 int COOR::save_result(
-    const map<string, vector<tuple<int, int, vector<string> > > >& synLocSampleVecMap,
-    const map<string, unordered_map<string, unordered_map<int, tuple<int, int> > > >& sampleChrStartSynQryLocMap,
+    const map<string, vector<tuple<int64_t, int64_t, vector<string> > > >& synLocSampleVecMap,
+    const map<string, unordered_map<string, unordered_map<int64_t, tuple<int64_t, int64_t> > > >& sampleChrStartSynQryLocMap,
     const string& outputFileName
 )
 {

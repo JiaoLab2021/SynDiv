@@ -155,14 +155,15 @@ class AlignmentLociClass:
         self._long_ali_loci_dict = {k: v for k, v in ali_loci_dict.items() if len(v) > threshold}
         self._short_ali_loci_dict = {k: v for k, v in ali_loci_dict.items() if len(v) <= threshold}
         # print quantity
-        logger.error(f'Number of tasks running in parallel by column: {len(self._long_ali_loci_dict)}')
         logger.error(f'Number of tasks running in parallel by row: {len(self._short_ali_loci_dict)}')
+        logger.error(f'Number of tasks running in parallel by column: {len(self._long_ali_loci_dict)}')
 
 
 
     def _alignment_line(
         self, 
-        key_value
+        thread_indice
+        
     ):
         """
         A multi-threaded function for extracting sequences and aligning them
@@ -170,182 +171,193 @@ class AlignmentLociClass:
         : param key1        reference genome coordinates, chr+"_"+start
         : param value1      map<sample, vector<chr:start-end> >
         :
-        : return key1, sample1_sample2_synpd, map<sample1, map<sample2, pd.DataFrame()> >
+        : return [key1, sample1_sample2_synpd, map<sample1, map<sample2, pd.DataFrame()> >]
         """
-        key1, value1 = key_value
-        # temporarily store collinear coordinates
-        sample1_sample2_synpd = {}  # map<sample1, map<sample2, pd.DataFrame()> >
+        # Store calculation results
+        loci_sample1_sample2_synpd_list = []
 
-        # Store extracted sequence files
-        file_name_map = {key2: os.path.abspath(f"{key1}_{key2}.fa") 
-                    for key2 in value1.keys()}
-        file_name_loc_map = {key2: {} for key2 in value1.keys()}
-        sample_list = list(value1.keys())
-
-        # chromosome
-        chromosome = ""
-
-        # ############### subseq ############### #
-        for key2, value2 in value1.items():  # map<sample, vector<chr:start-end> >
-            # Where the extracted sequences are saved
-            output_file_name = file_name_map[key2]
-
-            # submit task
-            chromosome, file_name_loc_map_tmp = samtools(
-                self._path, 
-                self._ali_loci_filename,
-                key1, 
-                key2, 
-                value2, 
-                self._config_file_map, 
-                output_file_name
-            )
-
-            # Record the coordinate information of the sample
-            for sample2_tmp, loci_map in file_name_loc_map_tmp.items():
-                file_name_loc_map[sample2_tmp] = loci_map
-
-
-        # ############### minimap2 + syri ############### #
-        # Record the sample collinear with sample1, which is used to judge whether the subsequent samples need to be compared with each other
-        syn_sample_dict = {}  # map<sample1, map<sample2, 0/1> >   0->noSyn  1->Syn
-
-        # sample1
-        for idx1, sample1 in enumerate(sample_list):
-            filename1 = file_name_map[sample1]
-
-            # Record the sample collinear with sample1, which is used to judge whether the subsequent samples need to be compared with each other
-            synSampleList = []
-            # Record the non-collinear sample with sample1, which is used to judge whether the subsequent samples need to be compared with each other
-            noSynSampleList = []
-
-            # ref coordinates and length information
-            ref_start_tmp_list = []
-            ref_end_tmp_list = []
-            ref_len_tmp_list = []
-            for key3, value3 in file_name_loc_map[sample1].items():  # map<start, end>
-                refLenTmp = abs(value3 - key3 + 1)
-                ref_start_tmp_list.append(key3)
-                ref_end_tmp_list.append(value3)
-                ref_len_tmp_list.append(refLenTmp)
-
-            if self._args.debug:
-                logger.error('\n', ref_start_tmp_list)
-                logger.error(ref_end_tmp_list)
-                logger.error(ref_len_tmp_list)
+        # Record iteration value
+        index = -1
+        for key1, value1 in thread_indice[2].items():
+            # Iterator increment
+            index += 1
             
-            # sample2
-            for idx2 in range(idx1 + 1, len(sample_list)):
-                sample2 = sample_list[idx2]
-                filename2 = file_name_map[sample2]
+            # Determines whether the index is in the thread's index
+            if index < thread_indice[0]:
+                continue
+            if index > thread_indice[1]:
+                # Returns the collinear coordinates of all sample combinations at this threads
+                return loci_sample1_sample2_synpd_list
 
-                # qry coordinates and length information
-                # qryStartTmpList = []
-                # qryEndTmpList = []
-                # qryLenTmpList = []
-                qryLenSum = 0
-                for key3, value3 in file_name_loc_map[sample2].items():  # map<start, end>
-                    qryLenTmp = abs(value3 - key3 + 1)
-                    # qryStartTmpList.append(key3)
-                    # qryEndTmpList.append(value3)
-                    # qryLenTmpList.append(qryLenTmp)
-                    qryLenSum += qryLenTmp
+            # temporarily store collinear coordinates
+            sample1_sample2_synpd = {}  # map<sample1, map<sample2, pd.DataFrame()> >
 
-                # Determine whether to compare and calculate collinearity
-                if sample1 in syn_sample_dict:
-                    if sample2 in syn_sample_dict[sample1]:
-                        # 1 means self._args.synRatio is collinear, add directly
-                        if syn_sample_dict[sample1][sample2] == 1:
-                            listSize = len(ref_start_tmp_list)
-                            # ["aStart","aEnd","bStart","bEnd","aLen","bLen","iden","aDir","bDir","aChr","bChr", 'cigar']
-                            SynPDTmp = pd.DataFrame({'aStart': ref_start_tmp_list, 
-                                                    'aEnd': ref_end_tmp_list, 
-                                                    'bStart': [1]*listSize, 
-                                                    'bEnd': [1]*listSize, 
-                                                    'aLen': ref_len_tmp_list, 
-                                                    'bLen': [1]*listSize, 
-                                                    'iden': [100]*listSize, 
-                                                    'aDir': [1]*listSize, 
-                                                    'bDir': [1]*listSize, 
-                                                    'aChr': [chromosome]*listSize, 
-                                                    'bChr': [chromosome]*listSize})
-                            try:
-                                # assignment
-                                sample1_sample2_synpd[sample1][sample2] = SynPDTmp
-                            except KeyError:
-                                # initialization
-                                if sample1 not in sample1_sample2_synpd:
-                                    sample1_sample2_synpd[sample1] = {}
-                                if sample2 not in sample1_sample2_synpd[sample1]:
-                                    sample1_sample2_synpd[sample1][sample2] = pd.DataFrame()
-                                # assignment
-                                sample1_sample2_synpd[sample1][sample2] = SynPDTmp
-                            continue
-                        # 0 means non-collinearity, also no comparison, just skip the sample2
-                        else:
-                            continue
-                
-                # output filename
-                alignment_file_name = os.path.abspath(f'{key1}_{sample1}_{sample2}.sam')
+            # Store extracted sequence files
+            file_name_map = {key2: os.path.abspath(f"{key1}_{key2}.fa") 
+                        for key2 in value1.keys()}
+            file_name_loc_map = {key2: {} for key2 in value1.keys()}
+            sample_list = list(value1.keys())
+
+            # chromosome
+            chromosome = ""
+
+            # ############### subseq ############### #
+            for key2, value2 in value1.items():  # map<sample, vector<chr:start-end> >
+                # Where the extracted sequences are saved
+                output_file_name = file_name_map[key2]
 
                 # submit task
-                # ["aStart","aEnd","bStart","bEnd","aLen","bLen","iden","aDir","bDir","aChr","bChr", 'cigar']
-                synpd = minimap2_syn(self._args, self._path, filename1, filename2, alignment_file_name, ref_start_tmp_list, ref_end_tmp_list, ref_len_tmp_list)
+                chromosome, file_name_loc_map_tmp = samtools(
+                    self._path, 
+                    self._ali_loci_filename,
+                    key1, 
+                    key2, 
+                    value2, 
+                    self._config_file_map, 
+                    output_file_name
+                )
 
-                # If it is empty, go directly to the next loop
-                if synpd.empty:
-                    # Samples recorded as non-collinear
-                    noSynSampleList.append(sample2)
-                    continue
+                # Record the coordinate information of the sample
+                for sample2_tmp, loci_map in file_name_loc_map_tmp.items():
+                    file_name_loc_map[sample2_tmp] = loci_map
 
-                try:
-                    # assignment
-                    sample1_sample2_synpd[sample1][sample2] = synpd
-                except KeyError:
-                    # initialization
-                    if sample1 not in sample1_sample2_synpd:
-                        sample1_sample2_synpd[sample1] = {}
-                    if sample2 not in sample1_sample2_synpd[sample1]:
-                        sample1_sample2_synpd[sample1][sample2] = pd.DataFrame()
-                    # assignment
-                    sample1_sample2_synpd[sample1][sample2] = synpd
 
-                # Add a list here to collect all the samples that are collinear, and skip these 
-                # samples for subsequent comparisons. The length of collinearity accounts for more than self._args.synRatio
-                qryTotal = synpd['bLen'].sum()
-                alignRatio = float(qryTotal)/max(qryLenSum, 1)
-                if alignRatio >= self._args.synRatio:
-                    synSampleList.append(sample2)
-                elif alignRatio <= self._args.nosynRatio:
-                    # Samples recorded as non-collinear
-                    noSynSampleList.append(sample2)
+            # ############### minimap2 + syri ############### #
+            # Record the sample collinear with sample1, which is used to judge whether the subsequent samples need to be compared with each other
+            syn_sample_dict = {}  # map<sample1, map<sample2, 0/1> >   0->noSyn  1->Syn
 
-            # Add collinear samples to the total dict for later comparison queries
             # sample1
-            for idx2, sample2 in enumerate(synSampleList):
-                # initialization dict
-                if sample2 not in syn_sample_dict:
-                    syn_sample_dict[sample2] = {}
-                # sample2
-                for idx3 in range(idx2 + 1, len(synSampleList)):
-                    syn_sample_dict[sample2][synSampleList[idx3]] = 1
-            # Add non-collinear samples to the total dict for later comparison queries
-            # sample1
-            for sample2 in synSampleList:
-                # initialization dict
-                if sample2 not in syn_sample_dict:
-                    syn_sample_dict[sample2] = {}
-                # sample2
-                for sample3 in noSynSampleList:
-                    syn_sample_dict[sample2][sample3] = 0
+            for idx1, sample1 in enumerate(sample_list):
+                filename1 = file_name_map[sample1]
 
-        # remove file (fasta)
-        for key2, value2 in file_name_map.items():
-            if os.path.exists(value2) and self._args.debug==False:
-                os.remove(value2)
+                # Record the sample collinear with sample1, which is used to judge whether the subsequent samples need to be compared with each other
+                synSampleList = []
+                # Record the non-collinear sample with sample1, which is used to judge whether the subsequent samples need to be compared with each other
+                noSynSampleList = []
 
-        # Returns the collinear coordinates of all sample combinations at the current position
-        return key1, sample1_sample2_synpd
+                # ref coordinates and length information
+                ref_start_tmp_list = []
+                ref_end_tmp_list = []
+                ref_len_tmp_list = []
+                for key3, value3 in file_name_loc_map[sample1].items():  # map<start, end>
+                    refLenTmp = abs(value3 - key3 + 1)
+                    ref_start_tmp_list.append(key3)
+                    ref_end_tmp_list.append(value3)
+                    ref_len_tmp_list.append(refLenTmp)
+
+                if self._args.debug:
+                    logger.error('\n', ref_start_tmp_list)
+                    logger.error(ref_end_tmp_list)
+                    logger.error(ref_len_tmp_list)
+                
+                # sample2
+                for idx2 in range(idx1 + 1, len(sample_list)):
+                    sample2 = sample_list[idx2]
+                    filename2 = file_name_map[sample2]
+
+                    qryLenSum = 0
+                    for key3, value3 in file_name_loc_map[sample2].items():  # map<start, end>
+                        qryLenTmp = abs(value3 - key3 + 1)
+                        qryLenSum += qryLenTmp
+
+                    # Determine whether to compare and calculate collinearity
+                    if sample1 in syn_sample_dict:
+                        if sample2 in syn_sample_dict[sample1]:
+                            # 1 means self._args.synRatio is collinear, add directly
+                            if syn_sample_dict[sample1][sample2] == 1:
+                                listSize = len(ref_start_tmp_list)
+                                # ["aStart","aEnd","bStart","bEnd","aLen","bLen","iden","aDir","bDir","aChr","bChr", 'cigar']
+                                SynPDTmp = pd.DataFrame({'aStart': ref_start_tmp_list, 
+                                                        'aEnd': ref_end_tmp_list, 
+                                                        'bStart': [1]*listSize, 
+                                                        'bEnd': [1]*listSize, 
+                                                        'aLen': ref_len_tmp_list, 
+                                                        'bLen': [1]*listSize, 
+                                                        'iden': [100]*listSize, 
+                                                        'aDir': [1]*listSize, 
+                                                        'bDir': [1]*listSize, 
+                                                        'aChr': [chromosome]*listSize, 
+                                                        'bChr': [chromosome]*listSize})
+                                try:
+                                    # assignment
+                                    sample1_sample2_synpd[sample1][sample2] = SynPDTmp
+                                except KeyError:
+                                    # initialization
+                                    if sample1 not in sample1_sample2_synpd:
+                                        sample1_sample2_synpd[sample1] = {}
+                                    if sample2 not in sample1_sample2_synpd[sample1]:
+                                        sample1_sample2_synpd[sample1][sample2] = pd.DataFrame()
+                                    # assignment
+                                    sample1_sample2_synpd[sample1][sample2] = SynPDTmp
+                                continue
+                            # 0 means non-collinearity, also no comparison, just skip the sample2
+                            else:
+                                continue
+                    
+                    # output filename
+                    alignment_file_name = os.path.abspath(f'{key1}_{sample1}_{sample2}.sam')
+
+                    # submit task
+                    # ["aStart","aEnd","bStart","bEnd","aLen","bLen","iden","aDir","bDir","aChr","bChr", 'cigar']
+                    synpd = minimap2_syn(self._args, self._path, filename1, filename2, alignment_file_name, ref_start_tmp_list, ref_end_tmp_list, ref_len_tmp_list)
+
+                    # If it is empty, go directly to the next loop
+                    if synpd.empty:
+                        # Samples recorded as non-collinear
+                        noSynSampleList.append(sample2)
+                        continue
+
+                    try:
+                        # assignment
+                        sample1_sample2_synpd[sample1][sample2] = synpd
+                    except KeyError:
+                        # initialization
+                        if sample1 not in sample1_sample2_synpd:
+                            sample1_sample2_synpd[sample1] = {}
+                        if sample2 not in sample1_sample2_synpd[sample1]:
+                            sample1_sample2_synpd[sample1][sample2] = pd.DataFrame()
+                        # assignment
+                        sample1_sample2_synpd[sample1][sample2] = synpd
+
+                    # Add a list here to collect all the samples that are collinear, and skip these 
+                    # samples for subsequent comparisons. The length of collinearity accounts for more than self._args.synRatio
+                    qryTotal = synpd['bLen'].sum()
+                    alignRatio = float(qryTotal)/max(qryLenSum, 1)
+                    if alignRatio >= self._args.synRatio:
+                        synSampleList.append(sample2)
+                    elif alignRatio <= self._args.nosynRatio:
+                        # Samples recorded as non-collinear
+                        noSynSampleList.append(sample2)
+
+                # Add collinear samples to the total dict for later comparison queries
+                # sample1
+                for idx2, sample2 in enumerate(synSampleList):
+                    # initialization dict
+                    if sample2 not in syn_sample_dict:
+                        syn_sample_dict[sample2] = {}
+                    # sample2
+                    for idx3 in range(idx2 + 1, len(synSampleList)):
+                        syn_sample_dict[sample2][synSampleList[idx3]] = 1
+                # Add non-collinear samples to the total dict for later comparison queries
+                # sample1
+                for sample2 in synSampleList:
+                    # initialization dict
+                    if sample2 not in syn_sample_dict:
+                        syn_sample_dict[sample2] = {}
+                    # sample2
+                    for sample3 in noSynSampleList:
+                        syn_sample_dict[sample2][sample3] = 0
+
+            # remove file (fasta)
+            for key2, value2 in file_name_map.items():
+                if os.path.exists(value2) and self._args.debug==False:
+                    os.remove(value2)
+
+            # The collinear coordinates of all sample combinations at the current position
+            loci_sample1_sample2_synpd_list.append((key1, sample1_sample2_synpd))
+
+        # Returns the collinear coordinates of all sample combinations at this threads
+        return loci_sample1_sample2_synpd_list
     
 
     def _alignment_column(
@@ -779,6 +791,21 @@ def sort_result(filePath):
     return 0
 
 
+# Calculates the left and right indexes of the thread pool
+def calculate_indices(total_threads, dict):
+    dict_length = len(dict)
+    import math
+    chunk_size = math.ceil(dict_length / total_threads)
+    thread_indices = []
+
+    for i in range(total_threads):
+        left_index = i * chunk_size
+        right_index = min((i + 1) * chunk_size - 1, dict_length - 1)
+        thread_indices.append((left_index, right_index, dict))
+
+    return thread_indices
+
+
 def main(args, config_file_map, no_synPath, workDir, code_path):
     """
     :param args:              the output of getParser
@@ -821,20 +848,23 @@ def main(args, config_file_map, no_synPath, workDir, code_path):
 
     # Traverse ali_loci_class._short_ali_loci_dict dictionary, multi-process
     if len(ali_loci_class._short_ali_loci_dict) > 0:
-        results = pool.imap_unordered(ali_loci_class._alignment_line, ali_loci_class._short_ali_loci_dict.items())
+        thread_indices = calculate_indices(args.jobs, ali_loci_class._short_ali_loci_dict)
+        results = pool.imap_unordered(ali_loci_class._alignment_line, thread_indices)
 
         # #################################### Save #################################### #
-        for loci, result in results:
-            # After each task is completed, increment the task counter by 1
-            task_count += 1
-            # print progress bar
-            progress = task_count / task_total * 100
-            logger.error(f'Alignment Progress: {progress:.2f}% | {task_count}/{task_total} | {loci}')
+        for loci_sample1_sample2_synpd_list in results:
+            for loci_sample1_sample2_synpd in loci_sample1_sample2_synpd_list:
+                loci, result = loci_sample1_sample2_synpd
+                # After each task is completed, increment the task counter by 1
+                task_count += 1
+                # print progress bar
+                progress = task_count / task_total * 100
+                logger.error(f'Alignment Progress: {progress:.2f}% | {task_count}/{task_total} | {loci}')
 
-            # save result
-            for key1, value1 in result.items():
-                for key2, value2 in value1.items():
-                    save_result(key1, key2, value2)
+                # save result
+                for key1, value1 in result.items():
+                    for key2, value2 in value1.items():
+                        save_result(key1, key2, value2)
 
     # Traverse ali_loci_class._long_ali_loci_dict dictionary, multi-process
     for key1, value1 in ali_loci_class._long_ali_loci_dict.items():  # map<chr+"_"+start, map<sample, vector<chr:start-end> > >
