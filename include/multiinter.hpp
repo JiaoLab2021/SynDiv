@@ -33,48 +33,48 @@ namespace MULTIINTER
      * 
      * @return pair<lineName, chrSynVecMap>        pair<lineName, map<chromosome, vector<pair<refStart, refEnd>>>>
     **/
-    pair<string, map<string, vector<pair<int64_t, int64_t> > > > build_syn_index(
+    pair<string, map<string, vector<pair<uint32_t, uint32_t> > > > build_syn_index(
         const string & inputFileName
     );
 
 
     /**
-        * @brief 找合集
-        * 
-        * @param chrLineSynVecMap          map<string, map<string, vector<pair<int64_t, int64_t> > > >, map<chromosome, map<lineName, vector<pair<refStart, refEnd>>>>
-        * 
-        * @return pair(outChrStartEndLineVecMap, idxLineMap)   pair(map<chr, map<refStart, vector<tuple<refEnd, vector<lineName>>>>>, 存储line的索引和名字)
+     * @brief Find set
+     * 
+     * @param chrLineSynVecMap          map<string, map<string, vector<pair<uint32_t, uint32_t> > > >, map<chromosome, map<lineName, vector<pair<refStart, refEnd>>>>
+     * 
+     * @return pair(outChrStartEndLineVecMap, idxLineMap)   pair(map<chr, map<refStart, vector<tuple<refEnd, vector<lineName>>>>>, store the index and name of the line)
     **/
-    pair<map<string, map<int64_t, vector<tuple<int64_t, vector<string> > > > >, map<int64_t, string> > syn_multiinter_find(
-        const map<string, map<string, vector<pair<int64_t, int64_t> > > > & chrLineSynVecMap
+    pair<map<string, map<uint32_t, vector<tuple<uint32_t, vector<string> > > > >, map<uint32_t, string> > syn_multiinter_find(
+        const map<string, map<string, vector<pair<uint32_t, uint32_t> > > > & chrLineSynVecMap
     );
     
 
     /**
-        * @brief 找集合_find
-        * 
-        * @param synVec      vector<pair<int64_t, int64_t > >, vector<pair<refStart, refEnd> >
-        * 
-        * @return tuple<int64_t, int64_t, vector<string> >  make_tuple(outStart, outEnd, lineName)
+     * @brief Find set _find
+     * 
+     * @param synVec      vector<pair<uint32_t, uint32_t > >, vector<pair<refStart, refEnd> >
+     * 
+     * @return tuple<uint32_t, uint32_t, vector<string> >  make_tuple(outStart, outEnd, lineName)
     **/
-    tuple<int64_t, int64_t, vector<string> > loc_find(
-        const vector<pair<int64_t, int64_t > > synVec, 
-        const map<int64_t, string> & idxLineMap
+    tuple<uint32_t, uint32_t, vector<string> > loc_find(
+        const vector<pair<uint32_t, uint32_t > > synVec, 
+        const map<uint32_t, string> & idxLineMap
     );
 
 
     /**
-        * @brief 存储结果
-        * 
-        * @param outChrStartEndLineVecMap      const map<chr, map<refStart, vector<tuple<refEnd, vector<lineName> > > > >
-        * @param idxLineMap                  map<index, lineName>
-        * @param outputName                  输出文件名
-        * 
-        * @return tuple<int64_t, int64_t, vector<string> >  make_tuple(outStart, outEnd, lineName)
+     * @brief save result
+     * 
+     * @param outChrStartEndLineVecMap    const map<chr, map<refStart, vector<tuple<refEnd, vector<lineName> > > > >
+     * @param idxLineMap                  map<index, lineName>
+     * @param outputName                  Output file name
+     * 
+     * @return tuple<uint32_t, uint32_t, vector<string> >  make_tuple(outStart, outEnd, lineName)
     **/
     int save_result(
-        const map<string, map<int64_t, vector<tuple<int64_t, vector<string> > > > > & outChrStartEndLineVecMap, 
-        map<int64_t, string> idxLineMap, 
+        const map<string, map<uint32_t, vector<tuple<uint32_t, vector<string> > > > > & outChrStartEndLineVecMap, 
+        map<uint32_t, string> idxLineMap, 
         const string & outputName
     );
 

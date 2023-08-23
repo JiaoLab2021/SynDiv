@@ -1631,8 +1631,8 @@ int CALNAME::calculate_fast(
 
     SAVE SAVEClass(outputFileName);
 
-    stringstream outStream; // 使用 stringstream 代替字符串拼接
-    static const uint64_t CACHE_SIZE = 1024 * 1024 * 10; // 缓存大小为 10mb
+    stringstream outStream; // Use stringstream instead of string concatenation
+    static const uint64_t CACHE_SIZE = 1024 * 1024 * 10; // Cache size is 10mb
     outStream.str().reserve(CACHE_SIZE);
     outStream << "#CHROM\tPOS\tAll_States\tSyntenic_States\tSyntenic_Diversity\n";
 

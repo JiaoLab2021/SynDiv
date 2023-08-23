@@ -9,28 +9,28 @@
 
 using namespace std;
 
-// 全局变量
-int thresholdLength = 1000;  // 共线性坐标ref和qry长度比阈值
+// Global variable
+int thresholdLength = 1000;  // Collinear coordinates ref and qry length ratio threshold
 
-// 是否调试代码
+// Whether to debug code
 bool debugCoor = false;
 
 
 int main_coor(int argc, char* argv[])
 {
-    // loc 输出文件
+    // loc Output file
     string synLocFileName;
 
-    // 输入文件列表和名称  show-aligns
+    // Enter a list of files and a name  show-aligns
     vector<string> inputFiles;
     vector<string> inputTitles;
-    // 判断是否有 titlename
+    // Determine whether there is titlename
     bool haveTitles = false;
 
-    // 输出文件名
+    // Output file name
     string outputFileName;
 
-    // 线程数
+    // threads number
     int threads = 30;
 
     //Parse command line options
@@ -134,7 +134,7 @@ int main_coor(int argc, char* argv[])
     
     /* ************************************ Build Syntenic Coordinates Index ************************************ */
     cerr << "[" << __func__ << "::" << getTime() << "] " << "Build Syntenic Coordinates Index ..." << endl;
-    map<string, vector<tuple<int64_t, int64_t, vector<string> > > > synLocSampleVecMap;  // map<chr, vector<tuple<refStart, refEnd, vector<sample> > > >
+    map<string, vector<tuple<uint32_t, uint32_t, vector<string> > > > synLocSampleVecMap;  // map<chr, vector<tuple<refStart, refEnd, vector<sample> > > >
     synLocSampleVecMap = COOR::build_syn_idx(
         synLocFileName
     );
@@ -142,16 +142,16 @@ int main_coor(int argc, char* argv[])
 
     /* ************************************ Find Syntenic Coordinates on query genomes ************************************ */
     cerr << "[" << __func__ << "::" << getTime() << "] " << "Find Syntenic Coordinates on query genomes ..." << endl;
-    ThreadPool pool(threads);  // 进程池
+    ThreadPool pool(threads);  // Thread pool
 
-    // 初始化线程池
+    // Initializes the thread pool
     pool.init();
 
-    // 保存多线程的结果
+    // Save the result of multiple threads
     vector<future<COOR::synAllStructure> > chrStartSynQryLocMapVec;
 
-    // 获取共线性在qry上的坐标
-    int64_t indexTmp = 0;  // 记录样品名的索引
+    // Obtain the coordinates of collinearity on qry
+    uint32_t indexTmp = 0;  // Record the index of the sample name
     for (auto it : inputFiles)
     {
         cerr << "[" << __func__ << "::" << getTime() << "] " << "get_syn_coor: " << it << endl;
@@ -164,7 +164,7 @@ int main_coor(int argc, char* argv[])
         
         // string alignsFileName = it;
         // COOR::synAllStructure chrStartSynQryLocMap;
-        // 多线程提交并保存结果
+        // Multithreading submits and saves results
         chrStartSynQryLocMapVec.push_back(
             pool.submit(
                 COOR::get_syn_coor, 
@@ -175,11 +175,11 @@ int main_coor(int argc, char* argv[])
             )
         );
 
-        indexTmp++;  // 索引叠加
+        indexTmp++;  // Index stack
     }
 
-    // 多线程结果保存
-    map<string, unordered_map<string, unordered_map<int64_t, tuple<int64_t, int64_t> > > > sampleChrStartSynQryLocMap;
+    // Multithreaded result saving
+    map<string, unordered_map<string, unordered_map<uint32_t, tuple<uint32_t, uint32_t> > > > sampleChrStartSynQryLocMap;
     for (size_t i = 0; i < chrStartSynQryLocMapVec.size(); i++)
     {
         COOR::synAllStructure synAllStructureTmp = move(chrStartSynQryLocMapVec[i].get());
@@ -189,7 +189,7 @@ int main_coor(int argc, char* argv[])
     vector<future<COOR::synAllStructure> >().swap(chrStartSynQryLocMapVec);
     malloc_trim(0);	// 0 is for heap memory
 
-    // 关闭线程池
+    // Close thread pool
     pool.shutdown();
     
     /* ************************************ Save The Result ************************************ */
@@ -226,23 +226,24 @@ void help_coor(char* argv[])
 
 
 /**
- * @brief 解析 '-- BEGIN alignment ' 字段
+ * @brief Parse the '-- BEGIN alignment 'field
  * 
  * @param informationTmp    '+1 278 - 1703'
  * 
  * @return tuple<strand, start, end>
 */
-tuple<string, int64_t, int64_t> COOR::get_alignment_loc(string informationTmp)
+tuple<string, uint32_t, uint32_t> COOR::get_alignment_loc(string informationTmp)
 {
-    // 获取比对方向，起始和终止的信息
+    // Get alignment direction, start and end information
     istringstream iss(informationTmp);  // +1 278 - 1703
     string strandTmp;
-    int64_t startTmp, endTmp;
+    uint32_t startTmp = 0;
+    uint32_t endTmp = 0;
     char sep;
 
     iss >> strandTmp >> startTmp >> sep >> endTmp;
 
-    // 如果为反向比对，交换起始和终止坐标
+    // For reverse alignment, switch the start and end coordinates
     if (strandTmp == "-1") {
         swap(startTmp, endTmp);
     }
@@ -252,81 +253,92 @@ tuple<string, int64_t, int64_t> COOR::get_alignment_loc(string informationTmp)
 
 
 /**
- * @brief 找qry上共线性的坐标
+ * @brief Find the coordinates of collinearity on qry
  * 
- * @param synLoc        共线性的坐标
- * @param refStart      ref的起始
- * @param refEnd        ref的终止
- * @param refSeq        ref的序列
- * @param qryStrand     qry比对方向
- * @param qryStart      qry的起始
- * @param qryEnd        qry的终止
- * @param qrySeq        qry的序列
+ * @param synLoc        Collinear coordinates
+ * @param refStart      Start of the ref
+ * @param refEnd        End of ref
+ * @param refSeq        ref sequence
+ * @param qryStrand     qry Compare directions
+ * @param qryStart      Indicates the start of qry
+ * @param qryEnd        End of qry
+ * @param qrySeq        qry
  * 
- * @return qrySynLoc    qry上syn的坐标， 0-没找到
+ * @return qrySynLoc coordinates of syn on qry, 0- Not found
 */
-int64_t COOR::find_qry_syn(
-    const int64_t & synLoc, 
-    int64_t refStart, 
-    int64_t refEnd, 
+uint32_t COOR::find_qry_syn(
+    const uint32_t & synLoc, 
+    uint32_t refStart, 
+    uint32_t refEnd, 
     const string & refSeq, 
     const string & AliQryStrand, 
-    int64_t qryStart, 
-    int64_t qryEnd, 
+    uint32_t qryStart, 
+    uint32_t qryEnd, 
     const string & qrySeq
 )
 {
-    int64_t qrySynLoc = 0;
+    uint32_t qrySynLoc = 0;
 
-    if (refStart <= synLoc && synLoc <= refEnd)  // 如果包含了共线性坐标
+    if (refStart <= synLoc && synLoc <= refEnd)  // If you include collinear coordinates
     {
-        int64_t iIdx = 0;  // 记录synStart对应的位置
+        uint32_t iIdx = 0;  // Record the location corresponding to synStart
 
-        --refStart;  // 坐标先减1
-        for (size_t i = 0; i < refSeq.size(); ++i)  // 循环ref序列
+        // Subtract 1 from the coordinates
+        if (refStart > 0) {
+            --refStart;
+        }
+
+        for (size_t i = 0; i < refSeq.size(); ++i)  // Cyclic ref sequence
         {
             if (refSeq[i] != '.')
             {
-                ++refStart;  // ref坐标递增
+                ++refStart;  // ref coordinate increment
             }
 
-            if (refStart == synLoc)  // 找syn坐标的索引
+            if (refStart == synLoc)  // Find the index of syn coordinates
             {
                 iIdx = i;
-                break;  // 找到坐标后退出该循环
+                break;  // Exit the loop when the coordinates are found
             }
         }
 
-        if (AliQryStrand == "+1")  // qry是正向比对时
+        if (AliQryStrand == "+1")  // qry is for forward comparison
         {
-            --qryStart;  // 坐标先减1
+            // Subtract 1 from the coordinates
+            if (qryStart > 0) {
+                --qryStart;
+            }
+
             for (size_t i = 0; i < qrySeq.size(); ++i)
             {
                 if (qrySeq[i] != '.')
                 {
-                    ++qryStart;  // ref坐标递增
+                    ++qryStart;  // ref coordinate increment
                 }
                 
-                if (i == iIdx)  // 循环到该位置后退出
+                if (i == iIdx)  // Loop to this position and exit
                 {
-                    break;  // 找到坐标后退出该循环
+                    break;  // Exit the loop when the coordinates are found
                 }
             }
             qrySynLoc = qryStart;
         }
-        else  // qry是反向比对时
+        else  // qry is the reverse comparison
         {
-            ++qryEnd;  // 坐标先加1
+            ++qryEnd;  // Add 1 to the coordinates
             for (size_t i = 0; i < qrySeq.size(); ++i)
             {
                 if (qrySeq[i] != '.')
                 {
-                    --qryEnd;  // ref坐标递减
+                    // qry coordinate decrement
+                    if (qryEnd > 0) {
+                        --qryEnd;
+                    }
                 }
                 
-                if (i == iIdx)  // 循环到该位置后退出
+                if (i == iIdx)  // Loop to this position and exit
                 {
-                    break;  // 找到坐标后退出该循环
+                    break;
                 }
             }
             qrySynLoc = qryEnd;
@@ -338,67 +350,67 @@ int64_t COOR::find_qry_syn(
 
 
 /**
- * @brief 找qry上共线性的坐标
- * 
- * @param chrStartSynQryLocMap  synAllStructure
- * @param refChr                染色体号
- * @param qrySynStartTmp        find_qry_syn找的qrySynStart
- * @param qrySynEndTmp          find_qry_syn找的qrySynEnd
- * @param refStart              该比对行ref的起始
- * @param refEnd                该比对行ref的终止
- * @param qryStart              该比对行qry的起始
- * @param qryEnd                带比对行qry的终止
- * @param synStart              目前要找的syn的ref起始
- * @param synEnd                目前要找的syn的ref终止
- * @param qrySynStart           syn的qry起始
- * @param qrySynEnd             syn的qry终止
- * @param whileBool             判断是否还需要while循环
- * @param aliRowStartNum        syn起始位置在该alignment的大致行数
- * @param aliRowEndNum          syn终止位置在该alignment的大致行数
- * 
- * @return qrySynLoc    qry上syn的坐标， 0-没找到
-*/
-int64_t COOR::syn_all_loc_push(
+ * @brief Find the coordinates of collinearity on qry
+ *
+ * @param chrStartSynQryLocMap            synAllStructure
+ * @param refChr                          Chromosome number
+ * @param qrySynStartTmp                  find_qry_syn found qrySynStart
+ * @param qrySynEndTmp                    find_qry_syn found qrySynEnd
+ * @param refStart                        Start of the line ref
+ * @param refEnd                          Terminates the ref of the alignment line
+ * @param qryStart                        Start of the row qry
+ * @param qryEnd                          Terminates the qry of the tape comparison row
+ * @param synStart                        The ref start of the syn you are looking for
+ * @param synEnd                          ref of syn currently sought terminates
+ * @param qrySynStart                     Indicates the qry start of syn
+ * @param qrySynEnd                       The qry of syn is terminated
+ * @param whileBool                       determines if a while loop is still needed
+ * @param aliRowStartNum                  The approximate number of lines in which the syn starts
+ * @param aliRowEndNum                    Approximate number of lines in the alignment where syn terminates
+ *
+ * @return qrySynLoc coordinates of syn on qry, 0- not found
+**/
+uint32_t COOR::syn_all_loc_push(
     synAllStructure & chrStartSynQryLocMap, 
     const string & refChr, 
-    const int64_t & qrySynStartTmp, 
-    const int64_t & qrySynEndTmp, 
-    const int64_t & refStart, 
-    const int64_t & refEnd, 
-    const int64_t & qryStart, 
-    const int64_t & qryEnd, 
-    const int64_t & synStart, 
-    const int64_t & synEnd, 
-    int64_t & qrySynStart, 
-    int64_t & qrySynEnd, 
+    const uint32_t & qrySynStartTmp, 
+    const uint32_t & qrySynEndTmp, 
+    const uint32_t & refStart, 
+    const uint32_t & refEnd, 
+    const uint32_t & qryStart, 
+    const uint32_t & qryEnd, 
+    const uint32_t & synStart, 
+    const uint32_t & synEnd, 
+    uint32_t & qrySynStart, 
+    uint32_t & qrySynEnd, 
     bool & whileBool, 
-    int64_t & aliRowStartNum, 
-    int64_t & aliRowEndNum
+    int32_t & aliRowStartNum, 
+    int32_t & aliRowEndNum
 )
 {
     whileBool = false;
 
     if (qrySynStartTmp != 0) {
-        if (qrySynStart > 0) {  // 之前找到过qrySynStart，选择离preQrySynStart最近的序列
-            if (abs(qrySynStart - synStart) > abs(qrySynStartTmp - synStart))
+        if (qrySynStart > 0) {  // Having previously found qrySynStart, select the sequence closest to preQrySynStart
+            if (abs(static_cast<int64_t>(qrySynStart) - static_cast<int64_t>(synStart)) > abs(static_cast<int64_t>(qrySynStartTmp) - static_cast<int64_t>(synStart)))
             {
                 qrySynStart = qrySynStartTmp;
             } else if (debugCoor) {
                 cerr << "skip_start:" << qrySynStartTmp << endl;
             }
         }
-        else  // 没有找到的话直接赋值
+        else  // If you don't find it, assign it
         {
             qrySynStart = qrySynStartTmp;
         }
         
-        aliRowStartNum = aliRowEndNum;  // 重置aliRowStartNum，跳至aliRowEndNum找终止坐标
+        aliRowStartNum = aliRowEndNum;  // Reset aliRowStartNum and jump to aliRowEndNum to find the end coordinates
     }
-    if (qrySynEndTmp != 0 && qrySynStart != 0)  // 起始必须先找到
+    if (qrySynEndTmp != 0 && qrySynStart != 0)  // The beginning must be found first
     {
-        if (qrySynEnd > 0)  // 之前找到过qrySynEnd，选择离preQrySynEnd最近的序列
+        if (qrySynEnd > 0)  // Having previously found qrySynEnd, select the sequence closest to preQrySynEnd
         {
-            if (abs(qrySynEnd - synEnd) > abs(qrySynEndTmp - synEnd))
+            if (abs(static_cast<int64_t>(qrySynEnd) - static_cast<int64_t>(synEnd)) > abs(static_cast<int64_t>(qrySynEndTmp) - static_cast<int64_t>(synEnd)))
             {
                 qrySynEnd = qrySynEndTmp;
             }
@@ -407,14 +419,14 @@ int64_t COOR::syn_all_loc_push(
                 cerr << "skip_end:" << qrySynEndTmp << endl;
             }
         }
-        else  // 没有找到的话直接赋值
+        else  // If you don't find it, assign it
         {
             qrySynEnd = qrySynEndTmp;
         }
 
-        // 大于0了再赋值，比对长度相差倍数小于thresholdLength了再赋值
-        int64_t refSynLen = abs(synEnd - synStart);
-        int64_t qrySynLen = abs(qrySynEnd - qrySynStart);
+        // If it is greater than 0, then assign a value, and if the difference multiple of the comparison length is smaller than the thresholdLength, then assign a value
+        uint32_t refSynLen = (synEnd > synStart) ? synEnd - synStart : synStart - synEnd;
+        uint32_t qrySynLen = (qrySynEnd > qrySynStart) ? qrySynEnd - qrySynStart : qrySynStart - qrySynEnd;
         if (qrySynEnd > 0 && max(refSynLen, qrySynLen)/(float)min(refSynLen, qrySynLen) < thresholdLength) {
             chrStartSynQryLocMap.chrStartSynQryLocMap[refChr][synStart] = make_tuple(
                 min(qrySynStart, qrySynEnd), 
@@ -441,44 +453,44 @@ int64_t COOR::syn_all_loc_push(
 
 
 /**
- * @brief 更新临时的syn坐标
+ * @brief Update temporary syn coordinates
  * 
- * @param sampleName            样品名，用于判断该行是否要进行判断
+ * @param sampleName            Sample name, used to determine whether the line is to be judged
  * @param synLocSampleVecMap    map<chr, vector<tuple<refStart, refEnd, vector<sample> > > >
- * @param synChr                染色体
- * @param synIdx                syn在该染色体的vector中索引
- * @param synStart              syn的起始
- * @param synEnd                syn的终止
- * @param qrySynStart           qry上syn的起始
- * @param qrySynEnd             qry上syn的终止
- * @param whileBool             判断是否跳出while循环
+ * @param synChr                chromosome
+ * @param synIdx                syn is indexed in the vector of the chromosome
+ * @param synStart              Start position of syn
+ * @param synEnd                End position of syn
+ * @param qrySynStart           Start position of syn on qry
+ * @param qrySynEnd             End position of syn on qry
+ * @param whileBool             Determine whether to jump out of the while loop
  * 
  * @return 0
 */
 int COOR::renew_syn_loc(
     const string& sampleName, 
-    const map<string, vector<tuple<int64_t, int64_t, vector<string> > > >& synLocSampleVecMap, 
+    const map<string, vector<tuple<uint32_t, uint32_t, vector<string> > > >& synLocSampleVecMap, 
     const string& synChr, 
-    int64_t& synIdx, 
-    int64_t& synStart, 
-    int64_t& synEnd, 
-    int64_t& qrySynStart, 
-    int64_t& qrySynEnd, 
+    uint32_t& synIdx, 
+    uint32_t& synStart, 
+    uint32_t& synEnd, 
+    uint32_t& qrySynStart, 
+    uint32_t& qrySynEnd, 
     bool& whileBool
 )
 {
-    map<string, vector<tuple<int64_t, int64_t, vector<string> > > >::const_iterator findIter = synLocSampleVecMap.find(synChr);  //  在共线性map中找染色体
-    if (findIter != synLocSampleVecMap.end())  // 找到了
+    map<string, vector<tuple<uint32_t, uint32_t, vector<string> > > >::const_iterator findIter = synLocSampleVecMap.find(synChr);  //  Look for chromosomes in a collinear map
+    if (findIter != synLocSampleVecMap.end())  // Got it.
     {
-        auto& synLocSampleVec = findIter->second;  // vector<tuple<int64_t, int64_t, vector<string> > >
+        auto& synLocSampleVec = findIter->second;  // vector<tuple<uint32_t, uint32_t, vector<string> > >
 
-        if (synIdx < synLocSampleVec.size())  // 防止越界
+        if (synIdx < synLocSampleVec.size())  // Prevention of transgression
         {
-            // 如果该共线性没有对应的样品名，继续下一个坐标
+            // If the collinearity does not have a corresponding sample name, proceed to the next coordinate
             while (find(get<2>(synLocSampleVec[synIdx]).begin(), get<2>(synLocSampleVec[synIdx]).end(), sampleName) == get<2>(synLocSampleVec[synIdx]).end())
             {
-                synIdx++;  // 更新坐标
-                // 如果越界，归零坐标并跳出函数
+                synIdx++;  // Update coordinate
+                // If you cross the line, zero the coordinates and exit the function
                 if (synIdx >= synLocSampleVec.size())
                 {
                     synIdx = 0;
@@ -494,7 +506,7 @@ int COOR::renew_syn_loc(
             
             synStart = get<0>(synLocSampleVec[synIdx]);
             synEnd = get<1>(synLocSampleVec[synIdx]);
-            synIdx++;  // 更新坐标
+            synIdx++;  // Update coordinate
             qrySynStart = 0;
             qrySynEnd = 0;
             whileBool = true;
@@ -515,16 +527,16 @@ int COOR::renew_syn_loc(
 
 
 /**
- * @brief 构件所有sample共有的syn坐标索引
+ * @brief The syn coordinate index common to all samples in the component
  * 
- * @param inputFileName         syn_loc输出文件
+ * @param inputFileName         syn_loc output file
  * 
  * @return synLocSampleVecMap   map<chr, vector<tuple<refStart, refEnd, vector<sample> > > >
 */
-map<string, vector<tuple<int64_t, int64_t, vector<string> > > > COOR::build_syn_idx(const string & inputFileName)
+map<string, vector<tuple<uint32_t, uint32_t, vector<string> > > > COOR::build_syn_idx(const string & inputFileName)
 {
-    // 保存共线性坐标
-    map<string, vector<tuple<int64_t, int64_t, vector<string> > > > synLocSampleVecMap;  // map<chr, vector<tuple<refStart, refEnd, vector<sample> > > >
+    // Save collinear coordinates
+    map<string, vector<tuple<uint32_t, uint32_t, vector<string> > > > synLocSampleVecMap;  // map<chr, vector<tuple<refStart, refEnd, vector<sample> > > >
 
     // open syntenic coordinations file
     GzChunkReader GzChunkReaderClass(inputFileName);
@@ -533,17 +545,17 @@ map<string, vector<tuple<int64_t, int64_t, vector<string> > > > COOR::build_syn_
     string line;
     while (GzChunkReaderClass.read_line(line))
     {
-        // 跳过空行
+        // Skip blank line
         if (line.empty())
         {
             continue;
         }
 
-        // 拆分
+        // split
         std::istringstream iss(line);
         vector<string> lineVec(std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>());
 
-        synLocSampleVecMap[lineVec[0]].push_back(make_tuple(stoll(lineVec[1]), stoll(lineVec[2]), split(lineVec[4], ",")));  // 存储共线性在ref上的坐标以及该位点的样品名称
+        synLocSampleVecMap[lineVec[0]].push_back(make_tuple(stoul(lineVec[1]), stoul(lineVec[2]), split(lineVec[4], ",")));  // Store the coordinates of collinearity on the ref and the sample name for that site
     }
 
     return synLocSampleVecMap;
@@ -551,39 +563,39 @@ map<string, vector<tuple<int64_t, int64_t, vector<string> > > > COOR::build_syn_
 
 
 /**
- * @brief 得到syn在qry上的坐标
+ * @brief Get the coordinates of syn on qry
  * 
- * @param sampleName                 样品名
- * @param inputFileName              show-aligns 输出文件
+ * @param sampleName                 sample name
+ * @param inputFileName              show-aligns output file
  * @param synLocSampleVecMap         map<chr, vector<tuple<refStart, refEnd, vector<sample> > > >
- * @param findRevBool                是否遍历反向比对序列
+ * @param findRevBool                Whether to traverse the reverse alignment sequence
  * 
  * @return chrStartSynQryLocMap      synAllStructure
 */
 COOR::synAllStructure COOR::get_syn_coor(
     string sampleName, 
     const string& inputFileName, 
-    const map<string, vector<tuple<int64_t, int64_t, vector<string> > > >& synLocSampleVecMap, 
+    const map<string, vector<tuple<uint32_t, uint32_t, vector<string> > > >& synLocSampleVecMap, 
     const bool& findRevBool
 )
 {
-    // 获取共线性在qry上的坐标
+    // Obtain the coordinates of collinearity on qry
     // map<chr, map<synStart, tuple<qrySynStart, qrySynEnd> > >
     synAllStructure chrStartSynQryLocMap;
 
-    // 如果没有提交样品名，根据文件提取
+    // If no sample name is submitted, extract according to the file
     if (sampleName.empty())
     {
-        vector<string> inputFileNameVecTmp = split(inputFileName, "/");  // 路径拆分
-        sampleName = inputFileNameVecTmp[inputFileNameVecTmp.size() - 1];
-        std::regex reg1(".aligns");  // 替换
-        sampleName = regex_replace(sampleName, reg1, "");  // 'An-1.aligns' 删除 '.aligns'
+        vector<string> inputFileNameVecTmp = split(inputFileName, "/");  // Path splitting
+        sampleName = inputFileNameVecTmp.back();
+        std::regex reg1(".aligns");  // Replace
+        sampleName = regex_replace(sampleName, reg1, "");  // 'An-1.aligns' Delete '.aligns'
     }
 
-    // 记录样品名称
+    // Record sample name
     chrStartSynQryLocMap.sampleName = sampleName;
 
-    // 先初始化sylLocVecOutMap
+    // First initialize the sylLocVecOutMap
     for (const auto& [chromosome, locationSampleVec] : synLocSampleVecMap)  // map<chr, vector<tuple<refStart, refEnd, vector<sample> > > >
     {
         for (const auto& [synStart, synEnd, sampleVec] : locationSampleVec)  // vector<tuple<refStart, refEnd, vector<sample> > >
@@ -592,46 +604,46 @@ COOR::synAllStructure COOR::get_syn_coor(
         }
     }
     
-    // 临时的syn坐标
+    // Temporary syn coordinates
     string synChr = "";
-    int64_t synIdx = 0;  // 用于提取共线性的坐标
-    int64_t synStart = 0;
-    int64_t synEnd = 0;
-    // 存储qry上syn的坐标
-    int64_t qrySynStart;
-    int64_t qrySynEnd;
+    uint32_t synIdx = 0;  // Used to extract collinear coordinates
+    uint32_t synStart = 0;
+    uint32_t synEnd = 0;
+    // Stores the coordinates of syn on qry
+    uint32_t qrySynStart;
+    uint32_t qrySynEnd;
 
-    // 临时的染色体号和坐标
+    // Temporary chromosome numbers and coordinates
     string refChr = "";
     string qryChr = "";
-    // alignmenmt的信息
+    // Information on alignmenmt
     string AliRefStrand = "";
     string AliQryStrand = "";
-    int64_t aliRefStart = 0;
-    int64_t aliRefEnd = 0;
-    int64_t aliQryStart = 0;
-    int64_t aliQryEnd = 0;
-    // 用于判断是否循环该条alignment的布尔值  (false)
+    uint32_t aliRefStart = 0;
+    uint32_t aliRefEnd = 0;
+    uint32_t aliQryStart = 0;
+    uint32_t aliQryEnd = 0;
+    // Boolean value (false) used to determine whether to loop the alignment
     bool aliBool = false;
-    // 用于记录syn的坐标在该alignment的第几行
-    int64_t aliRowStartNum = 0;
-    int64_t aliRowEndNum = INT64_MAX;
+    // The coordinates used to record the syn are in the line of this alignment
+    int32_t aliRowStartNum = 0;
+    int32_t aliRowEndNum = INT32_MAX;
 
-    // 具体行的信息
-    int64_t refStart = 0;
-    int64_t refEnd = 0;
+    // Line-specific information
+    uint32_t refStart = 0;
+    uint32_t refEnd = 0;
     string refSeq = "";
-    int64_t qryStart = 0;
-    int64_t qryEnd = 0;
+    uint32_t qryStart = 0;
+    uint32_t qryEnd = 0;
     string qrySeq = "";
 
-    // 构造的临时bool值，不使用，只是作为参数提交
+    // Constructed temporary bool value, not used, only submitted as a parameter
     bool whileBoolTmp = true;
 
     // open aligns file
     GzChunkReader GzChunkReaderClass(inputFileName);
 
-    // 记录循环的索引  偶数->ref  奇数->qry
+    // Record loop index. even ->ref odd ->qry
     int64_t forIdx = -1;
 
     // read line
@@ -639,7 +651,7 @@ COOR::synAllStructure COOR::get_syn_coor(
     
     while (GzChunkReaderClass.read_line(line))
     {
-        // 跳过空行
+        // Skip blank line
         if (line.empty())
         {
             continue;
@@ -648,22 +660,22 @@ COOR::synAllStructure COOR::get_syn_coor(
         if (line == "\n" || 
             line[0] == ' ' || 
             line[0] == '=' || 
-            line.find("--   END alignment ") != string::npos)  // 空格/=/\n/END alignment，直接跳过
+            line.find("--   END alignment ") != string::npos)  // ' /=/\n/END' alignment is skipped
         {
             continue;
         }
-        else  // 获取sown-aligns坐标
+        else  // Get the soon-Aligns coordinates
         {
-            if (line.find("-- Alignments between") != string::npos)  // 新的比对染色体    -- Alignments between chr1 and chr1
+            if (line.find("-- Alignments between") != string::npos)  // New comparison chromosome    -- Alignments between chr1 and chr1
             {
                 // 拆分字符串
                 std::istringstream iss(line);
                 vector<string> lineVec(std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>());
 
-                refChr = lineVec[3];  // ref染色体的临时值
-                qryChr = lineVec[5];  // qry染色体的临时值
+                refChr = lineVec[3];  // Temporary value of the ref chromosome
+                qryChr = lineVec[5];  // Temporary value of the qry chromosome
                 
-                // 共线性信息更新
+                // Collinear information update
                 synChr = refChr;
                 synIdx = 0;
                 synStart = 0;
@@ -680,54 +692,54 @@ COOR::synAllStructure COOR::get_syn_coor(
                     whileBoolTmp
                 );
 
-                // 重置坐标
+                // Reset coordinate
                 AliRefStrand = "";
                 AliQryStrand = "";
 
-                // 清空字符串
+                // Empty string
                 line.clear();
                 string().swap(line);
                 continue;
             }
-            else if (line.find("-- BEGIN alignment ") != string::npos)  // 新的比对坐标    -- BEGIN alignment [ +1 1078 - 68996 | +1 1 - 67961 ]
+            else if (line.find("-- BEGIN alignment ") != string::npos)  // New alignment coordinates    -- BEGIN alignment [ +1 1078 - 68996 | +1 1 - 67961 ]
             {
-                line = strip(line.erase(0, 21), '\n');  // 删除 '-- BEGIN alignment [ ' 共21个字符
-                line = line.erase(line.size()-2, 2);  // 删除 ' ]' 共2个字符，位置在最后两个
+                line = strip(line.erase(0, 21), '\n');  // Delete '-- BEGIN alignment [' contains 21 characters
+                line = line.erase(line.size()-2, 2);  // Remove ']' a total of 2 characters, position in the last two
 
-                vector<string> lineVec = split(line, " | ");  // 分割 '+1 278 - 1703 -1 2148 - 751'
+                vector<string> lineVec = split(line, " | ");  // Partition '+1 278-1703-1 2148-751 '
 
-                // 获取比对方向，起始和终止的信息  ref
+                // Get alignment direction, start and end information  ref
                 string AliRefStrandTmp;
-                int64_t aliRefStartTmp;
-                int64_t aliRefEndTmp;
+                uint32_t aliRefStartTmp;
+                uint32_t aliRefEndTmp;
                 tie(AliRefStrandTmp, aliRefStartTmp, aliRefEndTmp) = get_alignment_loc(
                     lineVec[0]
                 );
 
-                // 获取比对方向，起始和终止的信息  qry
+                // Get alignment direction, start and end information  qry
                 string AliQryStrandTmp;
-                int64_t aliQryStartTmp;
-                int64_t aliQryEndTmp;
+                uint32_t aliQryStartTmp;
+                uint32_t aliQryEndTmp;
                 tie(AliQryStrandTmp, aliQryStartTmp, aliQryEndTmp) = get_alignment_loc(
                     lineVec[1]
                 );
 
-                // 重置序列的索引
+                // Reset the index of the sequence
                 forIdx = -1;
 
-                // 坐标在共线性之前，跳过该条read。
+                // Skip this read before the coordinates are collinear.
                 if (aliRefEndTmp < synStart)
                 {
                     aliBool = false;
                 }
-                // 判断是否跳过反向互补序列，跳过该条read。
+                // Determines whether to skip the reverse complementary sequence and skip this read.
                 else if (!findRevBool && (AliRefStrandTmp == "-1" || AliQryStrandTmp == "-1"))
                 {
                     cerr << "[" << __func__ << "::" << getTime() << "] "
                         << "Warning: Reverse alignment skipped -> " << synChr << " " << line << endl;
                     aliBool = false;
                 }
-                // ref和qry的染色体不一样，跳过该条read。
+                // ref and qry have different chromosomes, skip this read.
                 else if (refChr != qryChr)
                 {
                     cerr << "[" << __func__ << "::" << getTime() << "] "
@@ -736,7 +748,7 @@ COOR::synAllStructure COOR::get_syn_coor(
                 }
                 else
                 {
-                    // 重置坐标
+                    // Reset coordinate
                     AliRefStrand = AliRefStrandTmp;
                     aliRefStart = aliRefStartTmp;
                     aliRefEnd = aliRefEndTmp;
@@ -745,66 +757,66 @@ COOR::synAllStructure COOR::get_syn_coor(
                     aliQryEnd = aliQryEndTmp;
                     aliBool = true;
 
-                    // 计算syn所在的大致行，
-                    aliRowStartNum = ((synStart - aliRefStart)/49)*2-10;
-                    aliRowEndNum = ((synEnd - aliRefStart)/49)*2-10;
+                    // Calculate the approximate line where syn is located,
+                    aliRowStartNum = ((static_cast<int32_t>(synStart) - static_cast<int32_t>(aliRefStart))/49)*2-10;
+                    aliRowEndNum = ((static_cast<int32_t>(synEnd) - static_cast<int32_t>(aliRefStart))/49)*2-10;
                 }
             }
-            // 只循环是数字开头和包含syn的行
-            // 如果map遍历完了，同样跳过，遍历完代表是  'synEnd==0'
+            // Only loops that start with a number and contain syn
+            // If the map is done, again skip it, and when it's done it means 'synEnd==0'.
             else if (isdigit(line[0]) != 0 && aliBool && synEnd > 0)   
             {
-                forIdx++;  // 记录行数  偶数ref 奇数qry
+                forIdx++;  // The number of rows is even ref odd qry
 
-                // 如果小于阈值的行跳过
+                // If the line is smaller than the threshold, skip
                 if (forIdx < aliRowStartNum)
                 {
                     continue;
                 }
 
-                // 拆分字符串
+                // Split string
                 std::istringstream iss(line);
                 vector<string> lineVec(std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>());
 
-                if (( forIdx & 1 ) == 0)  // 偶数
+                if (( forIdx & 1 ) == 0)  // even
                 {
-                    // 重置坐标 (this)
+                    // Reset coordinates (this)
                     refSeq = lineVec[1];
-                    // 临时的ref序列
+                    // Temporary ref sequence
                     string refSeqTmp = refSeq;
-                    // 删除  '.'  计算长度
+                    //Remove '.' to calculate length
                     refSeqTmp.erase(remove(refSeqTmp.begin(), refSeqTmp.end(), '.'), refSeqTmp.end());
-                    if (AliRefStrand == "+1")  // 正向比对
+                    if (AliRefStrand == "+1")  // Forward alignment
                     {
-                        refStart = stoll(lineVec[0]);
+                        refStart = stoul(lineVec[0]);
                         refEnd = refStart + refSeqTmp.size() - 1;
                     }
-                    else  // 反向比对
+                    else  // Reverse alignment
                     {
-                        refEnd = stoll(lineVec[0]);
+                        refEnd = stoul(lineVec[0]);
                         refStart = refEnd - refSeqTmp.size() + 1;
                     }
                 }
-                else
+                else  // odd
                 {
-                    // 重置坐标 (this)
+                    // Reset coordinates (this)
                     qrySeq = lineVec[1];
-                    // 临时的ref序列
+                    // Temporary ref sequence
                     string qrySeqTmp = qrySeq;
-                    // 删除  '.'  计算长度
+                    // Remove '.' to calculate length
                     qrySeqTmp.erase(remove(qrySeqTmp.begin(), qrySeqTmp.end(), '.'), qrySeqTmp.end());
-                    if (AliQryStrand == "+1")  // 正向比对
+                    if (AliQryStrand == "+1")  // Forward alignment
                     {
-                        qryStart = stoll(lineVec[0]);
+                        qryStart = stoul(lineVec[0]);
                         qryEnd = qryStart + qrySeqTmp.size() - 1;
                     }
-                    else  // 反向比对
+                    else  // Reverse alignment
                     {
-                        qryEnd = stoll(lineVec[0]);
+                        qryEnd = stoul(lineVec[0]);
                         qryStart = qryEnd - qrySeqTmp.size() + 1;
                     }
                     
-                    // 如果共线性区间在该区间之前了，更新共线性的坐标，但是要防止死循环，所以当'synEnd==0'时代表遍历完字典了，跳过
+                    // If the colinear interval is before that interval, update the colinear coordinates, but to prevent an endless loop, so when 'synEnd==0' means that the dictionary has been traversed, skip
                     while (synEnd > 0 && synEnd < refStart)
                     {
                         renew_syn_loc(
@@ -819,26 +831,26 @@ COOR::synAllStructure COOR::get_syn_coor(
                             whileBoolTmp
                         );
 
-                        // 计算syn所在的大致行，
-                        aliRowStartNum = ((synStart - aliRefStart)/49)*2-10;
-                        aliRowEndNum = ((synEnd - aliRefStart)/49)*2-10;
+                        // Calculate the approximate line where syn is located,
+                        aliRowStartNum = ((static_cast<int32_t>(synStart) - static_cast<int32_t>(aliRefStart))/49)*2-10;
+                        aliRowEndNum = ((static_cast<int32_t>(synEnd) - static_cast<int32_t>(aliRefStart))/49)*2-10;
 
-                        // 判断该条比对是否包含了syn，不包含下边的行都跳过
-                        if (aliRefEnd < synStart)  // 坐标在共线性之前，跳过该条read
+                        // Check whether syn is included in the comparison. Skip the lines that do not contain SYN
+                        if (aliRefEnd < synStart)  // Skip this read before the coordinates are collinear
                         {
                             aliBool = false;
                         }
                     }
 
-                    // 判断是否进入while循环
+                    // Determines whether to enter the while loop
                     bool whileBool = true;
 
-                    // 找坐标，push到总图中
+                    // Find the coordinates and push them into the diagram
                     while (((refStart <= synStart && synStart <= refEnd) || 
                             (refStart <= synEnd && synEnd <= refEnd)) &&
                             whileBool)
                     {
-                        int64_t qrySynStartTmp = find_qry_syn(
+                        uint32_t qrySynStartTmp = find_qry_syn(
                             synStart, 
                             refStart, 
                             refEnd, 
@@ -849,7 +861,7 @@ COOR::synAllStructure COOR::get_syn_coor(
                             qrySeq
                         );
 
-                        int64_t qrySynEndTmp = find_qry_syn(
+                        uint32_t qrySynEndTmp = find_qry_syn(
                             synEnd, 
                             refStart, 
                             refEnd, 
@@ -860,7 +872,7 @@ COOR::synAllStructure COOR::get_syn_coor(
                             qrySeq
                         );
 
-                        // 看是否找到，找到了往总哈希表中添加
+                        // See if you find it. If you find it, add it to the total hash table
                         syn_all_loc_push(
                             chrStartSynQryLocMap, 
                             refChr, 
@@ -879,7 +891,7 @@ COOR::synAllStructure COOR::get_syn_coor(
                             aliRowEndNum
                         );
 
-                        // 如果两个坐标都找到，或者已经到达synEnd所在行，更新syn的坐标
+                        // If both coordinates are found, or if synEnd has been reached, update the syn coordinates
                         if ((qrySynStart > 0 && qrySynEnd > 0) || 
                             (refStart <= synEnd && synEnd <= refEnd) || 
                             synEnd < refStart)
@@ -895,14 +907,14 @@ COOR::synAllStructure COOR::get_syn_coor(
                                 qrySynEnd, 
                                 whileBool
                             );
-                            // 判断该条比对是否包含了syn，不包含下边的行都跳过
+                            // Check whether syn is included in the comparison. Skip the lines that do not contain SYN
                             if (aliRefEnd < synStart)  // 坐标在共线性之前，跳过该条read
                             {
                                 aliBool = false;
                             }
-                            // 计算syn所在的大致行，
-                            aliRowStartNum = ((synStart - aliRefStart)/49)*2-10;
-                            aliRowEndNum = ((synEnd - aliRefStart)/49)*2-10;
+                            // Calculate the approximate line where syn is located,
+                            aliRowStartNum = ((static_cast<int32_t>(synStart) - static_cast<int32_t>(aliRefStart))/49)*2-10;
+                            aliRowEndNum = ((static_cast<int32_t>(synEnd) - static_cast<int32_t>(aliRefStart))/49)*2-10;
                         }
                     }
                 }
@@ -915,36 +927,36 @@ COOR::synAllStructure COOR::get_syn_coor(
 
 
 /**
- * @brief 保存结果
+ * @brief Save the result
  * 
- * @param synLocSampleVecMap            build_syn_idx构建的索引   map<chr, vector<tuple<refStart, refEnd, vector<sample> > > >
- * @param sampleChrStartSynQryLocMap    get_syn_coor返回值   map<sampleName, chrStartSynQryLocMap>   map<sampleName, map<chr, map<synStart, tuple<qrySynStart, qrySynEnd> > > >
- * @param outputFileName                输出文件名
+ * @param synLocSampleVecMap            build_syn_idx index to build   map<chr, vector<tuple<refStart, refEnd, vector<sample> > > >
+ * @param sampleChrStartSynQryLocMap    get_syn_coor Return value   map<sampleName, chrStartSynQryLocMap>   map<sampleName, map<chr, map<synStart, tuple<qrySynStart, qrySynEnd> > > >
+ * @param outputFileName                Output file name
  * 
  * @return chrStartSynQryLocMap      synAllStructure
 */
 int COOR::save_result(
-    const map<string, vector<tuple<int64_t, int64_t, vector<string> > > >& synLocSampleVecMap,
-    const map<string, unordered_map<string, unordered_map<int64_t, tuple<int64_t, int64_t> > > >& sampleChrStartSynQryLocMap,
+    const map<string, vector<tuple<uint32_t, uint32_t, vector<string> > > >& synLocSampleVecMap,
+    const map<string, unordered_map<string, unordered_map<uint32_t, tuple<uint32_t, uint32_t> > > >& sampleChrStartSynQryLocMap,
     const string& outputFileName
 )
 {
     SAVE SAVEClass(outputFileName);
 
-    stringstream outStream; // 使用 stringstream 代替字符串拼接
-    static const uint64_t CACHE_SIZE = 1024 * 1024 * 10; // 缓存大小为 10mb
+    stringstream outStream; // Use stringstream instead of string concatenation
+    static const uint64_t CACHE_SIZE = 1024 * 1024 * 10; // The cache size is 10mb
     outStream.str().reserve(CACHE_SIZE);
 
-    // 保存结果
+    // save result
     for (const auto& [chromosome, locationSampleVec] : synLocSampleVecMap)  // map<chr, vector<tuple<refStart, refEnd, vector<sample> > > >
     {
-        // 记录上一个共线性坐标，防止共线性之间有间隔
+        // Record the last collinear coordinate to prevent collinearity between intervals
         uint64_t preSynEnd = 0;
 
         for (const auto& [synStart, synEnd, sampleVec] : locationSampleVec)  // vector<tuple<refStart, refEnd, vector<sample> > >
         {
-            // 否则判断是否有间隔
-            if(preSynEnd != 0 && synStart - preSynEnd > 1)
+            // Otherwise, check whether there is an interval
+            if(preSynEnd != 0 && synStart > preSynEnd + 1)
             {
                 outStream << chromosome << '\t' << preSynEnd + 1 << '\t' << synStart - 1;
                 
@@ -955,9 +967,9 @@ int COOR::save_result(
                 outStream << '\n';
             }
 
-            preSynEnd = synEnd;  // 记录上一个共线性的坐标
+            preSynEnd = synEnd;  // Record the coordinates of the previous collinearity
 
-            // 当前节点的信息
+            // Information about the current node
             outStream << chromosome << '\t' << synStart << '\t' << synEnd;
             for (const auto& it3 : sampleChrStartSynQryLocMap)  // map<sampleName, map<chr, map<synStart, tuple<qrySynStart, qrySynEnd> > > >
             {
@@ -966,22 +978,22 @@ int COOR::save_result(
             }
             outStream << '\n';
 
-            if (outStream.tellp() >= CACHE_SIZE)  // 缓存大小为 10mb
+            if (outStream.tellp() >= CACHE_SIZE)  // The cache size is 10mb
             {
                 string outTxt = outStream.str();
                 SAVEClass.save(outTxt);
-                // 清空 stringstream
+                // Clearing a stringstream
                 outStream.str(string());
                 outStream.clear();
             }
         }
     }
 
-    if (outStream.tellp() > 0)  // 最后写一次
+    if (outStream.tellp() > 0)  // Write for the last time
     {
         string outTxt = outStream.str();
         SAVEClass.save(outTxt);
-        // 清空 stringstream
+        // Clearing a stringstream
         outStream.str(string());
         outStream.clear();
     }

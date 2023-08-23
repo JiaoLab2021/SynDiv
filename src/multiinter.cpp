@@ -3,19 +3,19 @@
 
 using namespace std;
 
- // 调试代码
+// Debug the code
 bool debugMultiinter = false;
 
 int main_multiinter(int argc, char* argv[])
 {
-    // 输入文件列表和名称  syri.out
+    // Enter the file list and name syri.out
     vector<string> inputFiles;
     vector<string> inputTitles;
 
-    // 判断是否有 titlename
+    // Check whether there is a titlename
     bool haveTitles = false;
 
-    // 输出文件名
+    // Output file name
     string outputFileName;
 
     //Parse command line options
@@ -98,35 +98,34 @@ int main_multiinter(int argc, char* argv[])
 
     /* ************************************ Build Syntenic Coordinates Index ************************************ */
     cerr << "[" << __func__ << "::" << getTime() << "] " << "Build Syntenic Coordinates Index ..." << endl;
-    // 存储所有line的共线性信息
-    map<string, map<string, vector<pair<int64_t, int64_t> > > > chrLineSynVecMap;  // map<chromosome, map<lineName, vector<pair<refStart, refEnd>>>>
+
+    // Stores collinear information for all lines
+    map<string, map<string, vector<pair<uint32_t, uint32_t> > > > chrLineSynVecMap;  // map<chromosome, map<lineName, vector<pair<refStart, refEnd>>>>
     
-    int64_t indexTmp = 0;  // 记录 lineName 的索引
-    for(auto it1 : inputFiles)
-    {
+    uint32_t indexTmp = 0;  // Record the lineName index
+
+    for(auto it1 : inputFiles) {
         string lineName;
-        map<string, vector<pair<int64_t, int64_t> > > chrSynVecMap;
+        map<string, vector<pair<uint32_t, uint32_t> > > chrSynVecMap;
         tie(lineName, chrSynVecMap) = MULTIINTER::build_syn_index(it1);
 
-        // 如果有 inputTitles 重新赋值
-        if (haveTitles)
-        {
+        // Reassign inputTitles if they exist
+        if (haveTitles) {
             lineName = inputTitles[indexTmp];
         }
         
-        for(auto it2 : chrSynVecMap)
-        {
+        for(auto it2 : chrSynVecMap) {
             string chromosome = it2.first;
             chrLineSynVecMap[chromosome][lineName] = it2.second;
         }
 
-        indexTmp++;  // 索引叠加
+        indexTmp++;  // Index overlay
     }
 
     /* ************************************ Find intersection ************************************ */
     cerr << "[" << __func__ << "::" << getTime() << "] " << "Find intersection ..." << endl;
-    map<string, map<int64_t, vector<tuple<int64_t, vector<string> > > > > outChrStartEndLineVecMap;  // map<chr, map<refStart, vector<tuple<refEnd, vector<lineName>>>>>
-    map<int64_t, string> idxLineMap;
+    map<string, map<uint32_t, vector<tuple<uint32_t, vector<string> > > > > outChrStartEndLineVecMap;  // map<chr, map<refStart, vector<tuple<refEnd, vector<lineName>>>>>
+    map<uint32_t, string> idxLineMap;
     tie(outChrStartEndLineVecMap, idxLineMap) = MULTIINTER::syn_multiinter_find(
         chrLineSynVecMap
     );
@@ -169,15 +168,15 @@ void help_multiinter(char* argv[])
  * 
  * @return pair<lineName, chrSynVecMap>        pair<lineName, map<chromosome, vector<pair<refStart, refEnd>>>>
 **/
-pair<string, map<string, vector<pair<int64_t, int64_t> > > > MULTIINTER::build_syn_index(
+pair<string, map<string, vector<pair<uint32_t, uint32_t> > > > MULTIINTER::build_syn_index(
     const string & inputFileName
 )
 {
-    // 品种的名字
+    // The name of the breed
     string lineName = inputFileName;
 
-    vector<string> inputFileNameVecTmp = split(inputFileName, "/");  // 路径拆分
-    lineName = inputFileNameVecTmp[inputFileNameVecTmp.size() - 1];  // 最后一个
+    vector<string> inputFileNameVecTmp = split(inputFileName, "/");  // Path splitting
+    lineName = inputFileNameVecTmp.back();  // The last one
 
     string prefix = ".syri.out";
     auto iter1 = lineName.find(prefix);
@@ -188,36 +187,36 @@ pair<string, map<string, vector<pair<int64_t, int64_t> > > > MULTIINTER::build_s
     
     cerr << "[" << __func__ << "::" << getTime() << "] " << "Building index: " << inputFileName << " ...\n";  // print log
 
-    map<string, vector<pair<int64_t, int64_t> > > chrSynVecMap;  // map<chromosome, vector<pair<refStart, refEnd>>>
+    map<string, vector<pair<uint32_t, uint32_t> > > chrSynVecMap;  // map<chromosome, vector<pair<refStart, refEnd>>>
 
     // open file
     GzChunkReader GzChunkReaderClass(inputFileName);
 
-    // 上一个共线性的坐标
+    // Coordinates of the previous collinearity
     string preChromosome;
-    int64_t PreRefStart = 0;
-    int64_t PreRefEnd = 0;
+    uint32_t PreRefStart = 0;
+    uint32_t PreRefEnd = 0;
 
     // read line
     string line;
 
     while (GzChunkReaderClass.read_line(line))
     {
-        // 跳过空行
+        // Skip the blank line
         if (line.empty() || line.find("SYNAL") == string::npos)
         {
             continue;
         }
 
-        // 拆分
+        // Split
         std::istringstream iss(line);
         vector<string> lineVec(std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>());
 
         string chromosome = lineVec[0];
-        int64_t refStart = stoll(lineVec[1]);
-        int64_t refEnd = stoll(lineVec[2]);
+        uint32_t refStart = stoul(lineVec[1]);
+        uint32_t refEnd = stoul(lineVec[2]);
 
-        if(preChromosome != chromosome && preChromosome.size() > 0)  // 如果换染色体了/第一条染色体略过。清零
+        if(preChromosome != chromosome && preChromosome.size() > 0)  // If you change chromosomes/Skip the first chromosome. Zero clearing
         {
             chrSynVecMap[preChromosome].push_back(make_pair(PreRefStart, PreRefEnd));
             PreRefStart = refStart;
@@ -225,25 +224,25 @@ pair<string, map<string, vector<pair<int64_t, int64_t> > > > MULTIINTER::build_s
         }
         else
         {
-            if(PreRefStart == 0)  // 第一条染色体第一个syn
+            if(PreRefStart == 0)  // First syn on chromosome 1
             {
                 PreRefStart = refStart;
                 PreRefEnd = refEnd;
             }
-            else if(refStart <= PreRefEnd)  // 上一个包含该区间
+            else if(refStart <= PreRefEnd)  // The previous one contains the interval
             {
-                if(refEnd > PreRefEnd)  // 部分包含
+                if(refEnd > PreRefEnd)  // Part contains
                 {
                     PreRefStart = PreRefStart;
                     PreRefEnd = refEnd;
                 }
-                else  // 完全包含
+                else  // Fully included
                 {
                     PreRefStart = PreRefStart;
                     PreRefEnd = PreRefEnd;
                 }
             }
-            else  // 不重叠
+            else  // No overlap
             {
                 chrSynVecMap[preChromosome].push_back(make_pair(PreRefStart, PreRefEnd));
                 PreRefStart = refStart;
@@ -254,7 +253,7 @@ pair<string, map<string, vector<pair<int64_t, int64_t> > > > MULTIINTER::build_s
         preChromosome = chromosome;
     }
 
-    // 最后一个坐标添加
+    // Last coordinate added
     chrSynVecMap[preChromosome].push_back(make_pair(PreRefStart, PreRefEnd));
 
     return make_pair(lineName, chrSynVecMap);
@@ -262,23 +261,24 @@ pair<string, map<string, vector<pair<int64_t, int64_t> > > > MULTIINTER::build_s
 
 
 /**
-    * @brief 找合集
-    * 
-    * @param chrLineSynVecMap          map<string, map<string, vector<pair<int64_t, int64_t> > > >, map<chromosome, map<lineName, vector<pair<refStart, refEnd>>>>
-    * 
-    * @return pair(outChrStartEndLineVecMap, idxLineMap)   pair(map<chr, map<refStart, vector<tuple<refEnd, vector<lineName>>>>>, 存储line的索引和名字)
+ * @brief Find set
+ * 
+ * @param chrLineSynVecMap          map<string, map<string, vector<pair<uint32_t, uint32_t> > > >, map<chromosome, map<lineName, vector<pair<refStart, refEnd>>>>
+ * 
+ * @return pair(outChrStartEndLineVecMap, idxLineMap)   pair(map<chr, map<refStart, vector<tuple<refEnd, vector<lineName>>>>>, store the index and name of the line)
 **/
-pair<map<string, map<int64_t, vector<tuple<int64_t, vector<string> > > > >, map<int64_t, string> > MULTIINTER::syn_multiinter_find(
-    const map<string, map<string, vector<pair<int64_t, int64_t> > > > & chrLineSynVecMap
+pair<map<string, map<uint32_t, vector<tuple<uint32_t, vector<string> > > > >, map<uint32_t, string> > MULTIINTER::syn_multiinter_find(
+    const map<string, map<string, vector<pair<uint32_t, uint32_t> > > > & chrLineSynVecMap
 )
 {
     cerr << "[" << __func__ << "::" << getTime() << "] " << "Searching ..." << endl;
-    // 保存结果
-    map<string, map<int64_t, vector<tuple<int64_t, vector<string> > > > > outChrStartEndLineVecMap;  // map<chr, map<refStart, vector<tuple<refEnd, vector<lineName>>>>>
 
-    map<int64_t, string> idxLineMap;  // 存储line的索引和名字
+    // save result
+    map<string, map<uint32_t, vector<tuple<uint32_t, vector<string> > > > > outChrStartEndLineVecMap;  // map<chr, map<refStart, vector<tuple<refEnd, vector<lineName>>>>>
 
-    // 遍历染色体
+    map<uint32_t, string> idxLineMap;  // Store the index and name of the line
+
+    // Ergodic chromosome
     for(auto it1 : chrLineSynVecMap)  // map<chromosome, map<lineName, vector<pair<refStart, refEnd>>>>
     {
         // it1.first -> chromosome
@@ -286,10 +286,10 @@ pair<map<string, map<int64_t, vector<tuple<int64_t, vector<string> > > > >, map<
 
         // it1.second -> map<lineName, vector<pair<refStart, refEnd>>>
 
-        int64_t lineIdx = 0;  // lineName的索引
+        uint32_t lineIdx = 0;  // lineName Index
         
-        // 将染色体对应的所有共线性列表和索引信息提取出来，并赋值第一个坐标为syn列表的第一个
-        map<string, tuple<vector<pair<int64_t, int64_t> >, int64_t, pair<int64_t, int64_t> > > LineSynVecIdxSynMap;  // map<lineName, tuple<vector<pair<refStart, refEnd> >, index, pair<refStart, refEnd> > >
+        // All collinear lists and index information corresponding to chromosomes are extracted, and the first coordinate is assigned as the first of the syn list
+        map<string, tuple<vector<pair<uint32_t, uint32_t> >, uint32_t, pair<uint32_t, uint32_t> > > LineSynVecIdxSynMap;  // map<lineName, tuple<vector<pair<refStart, refEnd> >, index, pair<refStart, refEnd> > >
         for(auto it2 : it1.second)  // map<lineName, vector<pair<refStart, refEnd>>>
         {
             // it2.first -> lineName
@@ -297,16 +297,16 @@ pair<map<string, map<int64_t, vector<tuple<int64_t, vector<string> > > > >, map<
 
             LineSynVecIdxSynMap[it2.first] = make_tuple(it2.second, 0, it2.second[0]);
 
-            idxLineMap[lineIdx] = it2.first;  // 存储line信息
-            lineIdx++;  // 索引加1
+            idxLineMap[lineIdx] = it2.first;  // Store line information
+            lineIdx++;  // Index plus one
         }
 
 
-        // 寻找，先构造一个临时的共线性列表，存储每个样本第一个共线性区间
-        vector<pair<int64_t, int64_t> > synVec;  // 存储共线性区间，找合集
+        // To find, first construct a temporary collinear list, storing the first collinear interval of each sample
+        vector<pair<uint32_t, uint32_t> > synVec;  // Store collinear intervals, find a set
         
-        int64_t lineNum = idxLineMap.size();  // sample数量，用于判断是否终止循环
-        int64_t endNum = 0;  // 用于判断是否终止while循环
+        uint32_t lineNum = idxLineMap.size();  // sample Indicates the number of samples to determine whether to terminate the loop
+        uint32_t endNum = 0;  // Used to determine whether to terminate the while loop
 
         for(auto it1 : LineSynVecIdxSynMap)  // map<lineName, tuple<vector<pair<refStart, refEnd> >, index, pair<refStart, refEnd> > >
         {
@@ -316,32 +316,32 @@ pair<map<string, map<int64_t, vector<tuple<int64_t, vector<string> > > > >, map<
             // it1.second -> tuple<vector<pair<refStart, refEnd> >, index, pair<refStart, refEnd> >
             synVec.push_back(get<2>(it1.second));
 
-            // 如果调试代码的话，打印log
+            // If debugging code, print log
             if (debugMultiinter)
             {
                 cerr << chromosome << " " << lineName << ":" << get<2>(it1.second).first << "-" << get<2>(it1.second).second << endl;
             }
             
-            if(get<1>(it1.second) == get<0>(it1.second).size())  // 判断是否循环完毕
+            if(get<1>(it1.second) == get<0>(it1.second).size())  // Check whether the loop is complete
             {
                 endNum++;
             }
         }
         
-        while(endNum < lineNum)  // 当 endNum == lineNum 时结束循环
+        while(endNum < lineNum)  // End the loop when endNum == lineNum
         {
-            endNum = 0;  // 重置计数
+            endNum = 0;  // Reset count
 
-            // 找交集
-            int64_t outRefStart = 0;
-            int64_t outRefEnd = 0;
+            // Find intersection
+            uint32_t outRefStart = 0;
+            uint32_t outRefEnd = 0;
             vector<string> outLineVec;
             tie(outRefStart, outRefEnd, outLineVec) = loc_find(
                 synVec, 
                 idxLineMap
             );
 
-            // 如果调试代码的话，打印log
+            // Print log if debugging code
             if (debugMultiinter)
             {
                 cerr << chromosome << " loc:" << outRefStart << "-" << outRefEnd << endl << chromosome << " outLine:";
@@ -353,54 +353,54 @@ pair<map<string, map<int64_t, vector<tuple<int64_t, vector<string> > > > >, map<
                 cerr << endl << endl;
             }
 
-            // 存储交集结果
+            // Store intersection results
             outChrStartEndLineVecMap[chromosome][outRefStart].push_back(make_tuple(outRefEnd, outLineVec));
 
-            // 清空坐标
+            // Empty coordinates
             synVec.clear();
-            vector<pair<int64_t, int64_t > >().swap(synVec);
+            vector<pair<uint32_t, uint32_t > >().swap(synVec);
 
-            // 更新共线性索引和坐标
+            // Update collinear indexes and coordinates
             for(auto it1 : LineSynVecIdxSynMap)  // map<lineName, tuple<vector<pair<refStart, refEnd> >, index, pair<refStart, refEnd> > >
             {
                 // it1.first -> lineName
                 string lineName = it1.first;
 
-                // 品种对应的共线性坐标，用于判断是否更新坐标
-                vector<pair<int64_t, int64_t> > lineSynVec = get<0>(it1.second);
-                int64_t lineSynIdx = get<1>(it1.second);
-                pair<int64_t, int64_t> lineSycLocTmp = get<2>(it1.second);
+                // Collinear coordinates corresponding to varieties, used to determine whether to update the coordinates
+                vector<pair<uint32_t, uint32_t> > lineSynVec = get<0>(it1.second);
+                uint32_t lineSynIdx = get<1>(it1.second);
+                pair<uint32_t, uint32_t> lineSycLocTmp = get<2>(it1.second);
 
-                // 更新坐标
-                if(lineSycLocTmp.first >= outRefEnd)  // 如果没用到该共线性区间，直接下一个品种
+                // Update coordinate
+                if(lineSycLocTmp.first >= outRefEnd)  // If this collinear interval is not used, go straight to the next variety
                 {
-                    synVec.push_back(lineSycLocTmp);  // 更新坐标，还用上一个的坐标
+                    synVec.push_back(lineSycLocTmp);  // Update the coordinates and use the coordinates of the other one
                 }
-                else if(outRefEnd >= lineSycLocTmp.second)  // 共线性坐标被用完了
+                else if(outRefEnd >= lineSycLocTmp.second)  // The collinear coordinates are used up
                 {
                     lineSynIdx++;
-                    if(lineSynIdx >= lineSynVec.size())  // 判断是否循环完毕
+                    if(lineSynIdx >= lineSynVec.size())  // Check whether the loop is complete
                     {
-                        lineSycLocTmp = make_pair(0, 0);  // 全归零
+                        lineSycLocTmp = make_pair(0, 0);  // Total return to zero
                         endNum++;
                     }
                     else
                     {
-                        lineSycLocTmp = lineSynVec[lineSynIdx];  // 共线性指向下一个坐标
+                        lineSycLocTmp = lineSynVec[lineSynIdx];  // Collinearity points to the next coordinate
                     }
 
                     synVec.push_back(lineSycLocTmp);
-                    LineSynVecIdxSynMap[lineName] = make_tuple(lineSynVec, lineSynIdx, lineSycLocTmp);  // 更新哈希表的坐标
+                    LineSynVecIdxSynMap[lineName] = make_tuple(lineSynVec, lineSynIdx, lineSycLocTmp);  // Update the coordinates of the hash table
                 }
-                else  // 共线性坐标被用了一半
+                else  // Collinear coordinates are used half of the time
                 {
                     lineSycLocTmp.first = outRefEnd;
 
-                    synVec.push_back(lineSycLocTmp);  // 更新坐标
-                    LineSynVecIdxSynMap[lineName] = make_tuple(lineSynVec, lineSynIdx, lineSycLocTmp);  // 更新哈希表的坐标
+                    synVec.push_back(lineSycLocTmp);  // Update coordinate
+                    LineSynVecIdxSynMap[lineName] = make_tuple(lineSynVec, lineSynIdx, lineSycLocTmp);  // Update the coordinates of the hash table
                 }
 
-                // 如果调试代码的话，打印log
+                // If debugging code, print log
                 if (debugMultiinter)
                 {
                     cerr << chromosome << " " << lineName << ":" << lineSycLocTmp.first << "-" << lineSycLocTmp.second << " endNum:" << endNum << endl;
@@ -414,52 +414,52 @@ pair<map<string, map<int64_t, vector<tuple<int64_t, vector<string> > > > >, map<
 
 
 /**
-    * @brief 找集合_find
-    * 
-    * @param synVec      vector<pair<int64_t, int64_t > >, vector<pair<refStart, refEnd> >
-    * 
-    * @return tuple<int64_t, int64_t, vector<string> >  make_tuple(outStart, outEnd, lineName)
+ * @brief Find set _find
+ * 
+ * @param synVec      vector<pair<uint32_t, uint32_t > >, vector<pair<refStart, refEnd> >
+ * 
+ * @return tuple<uint32_t, uint32_t, vector<string> >  make_tuple(outStart, outEnd, lineName)
 **/
-tuple<int64_t, int64_t, vector<string> > MULTIINTER::loc_find(
-    const vector<pair<int64_t, int64_t > > synVec, 
-    const map<int64_t, string> & idxLineMap
+tuple<uint32_t, uint32_t, vector<string> > MULTIINTER::loc_find(
+    const vector<pair<uint32_t, uint32_t > > synVec, 
+    const map<uint32_t, string> & idxLineMap
 )
 {
-    // 共线性区间
-    int64_t outStart = INT_MAX;
-    int64_t outEnd = INT_MAX;
+    // Collinear interval
+    uint32_t outStart = UINT32_MAX;
+    uint32_t outEnd = UINT32_MAX;
 
-    vector<string> lineNameVec;  // 共线性区间对应的品种索引
+    vector<string> lineNameVec;  // Index of varieties corresponding to collinear intervals
     
 
-    for(auto it1 : synVec)  // 找共线性最小的坐标，肯定在起始坐标中
+    for(auto it1 : synVec)  // Find the lowest collinear coordinates, which must be in the starting coordinates
     {
-        if(it1.first == 0 && it1.second == 0) continue;  // 如果都为0代表这个line循环完毕
+        if(it1.first == 0 && it1.second == 0) continue;  // If both are 0, the line loop is complete
 
-        outStart = min(outStart, it1.first);  // 所有共线性中的最小值，肯定在起始坐标中
+        outStart = min(outStart, it1.first);  // The lowest value in all collinearity must be in the starting coordinates
     }
 
-    for(auto it1 : synVec)  // 找共线性第二小的坐标
+    for(auto it1 : synVec)  // Find the collinearity second smallest coordinates
     {
-        if(it1.first == 0 && it1.second == 0) continue;  // 如果都为0代表这个line循环完毕
+        if(it1.first == 0 && it1.second == 0) continue;  // If both are 0, the line loop is complete
 
-        if (it1.first != outStart)  // 不能是最小值
+        if (it1.first != outStart)  // It cannot be the minimum value
         {
             outEnd = min(outEnd, it1.first);
         }
         outEnd = min(outEnd, it1.second);
     }
 
-    if (outEnd == INT_MAX)  // 防止出现终止和起始一样的情况
+    if (outEnd == UINT32_MAX)  // Prevent situations where the end is the same as the start
     {
         outEnd = outStart;
     }
     
 
-    int64_t lineIdx = 0;
-    for(auto it1 : synVec)  // 找最小区间对应的品种信息
+    uint32_t lineIdx = 0;
+    for(auto it1 : synVec)  // Find the minimum interval corresponding to the variety information
     {
-        if(it1.first == 0 && it1.second == 0)  // 如果都为0代表这个line循环完毕
+        if(it1.first == 0 && it1.second == 0)  // If both are 0, the line loop is complete
         {
             lineIdx++;
             continue;
@@ -489,34 +489,34 @@ tuple<int64_t, int64_t, vector<string> > MULTIINTER::loc_find(
 
 
 /**
-    * @brief 存储结果
-    * 
-    * @param outChrStartEndLineVecMap      const map<chr, map<refStart, vector<tuple<refEnd, vector<lineName> > > > >
-    * @param idxLineMap                  map<index, lineName>
-    * @param outputName                  输出文件名
-    * 
-    * @return tuple<int64_t, int64_t, vector<string> >  make_tuple(outStart, outEnd, lineName)
+ * @brief save result
+ * 
+ * @param outChrStartEndLineVecMap    const map<chr, map<refStart, vector<tuple<refEnd, vector<lineName> > > > >
+ * @param idxLineMap                  map<index, lineName>
+ * @param outputName                  Output file name
+ * 
+ * @return tuple<uint32_t, uint32_t, vector<string> >  make_tuple(outStart, outEnd, lineName)
 **/
 int MULTIINTER::save_result(
-    const map<string, map<int64_t, vector<tuple<int64_t, vector<string> > > > > & outChrStartEndLineVecMap, 
-    map<int64_t, string> idxLineMap, 
+    const map<string, map<uint32_t, vector<tuple<uint32_t, vector<string> > > > > & outChrStartEndLineVecMap, 
+    map<uint32_t, string> idxLineMap, 
     const string & outputName
 )
 {
     SAVE SAVEClass(outputName);
 
-    stringstream outStream; // 使用 stringstream 代替字符串拼接
-    static const uint64_t CACHE_SIZE = 1024 * 1024 * 10; // 缓存大小为 10mb
+    stringstream outStream; // Use stringstream instead of string concatenation
+    static const uint64_t CACHE_SIZE = 1024 * 1024 * 10; // The cache size is 10mb
     outStream.str().reserve(CACHE_SIZE);
 
-    // 将lineName添加到列表中
+    // Add lineName to the list
     vector<string> lineNameVec;
     for(auto it : idxLineMap)
     {
         lineNameVec.push_back(it.second); 
     }
 
-    // 保存结果
+    // save result
     for(auto it1 : outChrStartEndLineVecMap)  // map<chr, map<refStart, vector<tuple<refEnd, vector<lineName> > > > >
     {
         for(auto it2 : it1.second)  // map<refStart, vector<tuple<refEnd, vector<lineName> > > >
@@ -525,15 +525,15 @@ int MULTIINTER::save_result(
             {
                 outStream << it1.first << "\t" << to_string(it2.first) << "\t" + to_string(get<0>(it3)) << "\t" << to_string(get<1>(it3).size()) << "\t";
 
-                // 共线性含有的品种名字索引
-                int64_t idxTmp=0;
+                // Collinearity contains index of breed names
+                uint32_t idxTmp=0;
 
-                // 输出(第五列及之后的内容)
+                // Output (Column 5 and beyond)
                 vector<string> lineNameVecTmp;
                 vector<int> boolVecTmp;
                 for (size_t i = 0; i < lineNameVec.size(); i++)  // vector<lineName>
                 {
-                    if(lineNameVec[i] == get<1>(it3)[idxTmp])  // 含有对应的品种
+                    if(lineNameVec[i] == get<1>(it3)[idxTmp])  // Contains the corresponding variety
                     {
                         lineNameVecTmp.push_back(lineNameVec[i]);
                         boolVecTmp.push_back(1);
@@ -544,14 +544,14 @@ int MULTIINTER::save_result(
                         boolVecTmp.push_back(0);
                     }
 
-                    // 如果到vector的结尾，跳出for循环
+                    // If you go to the end of the vector, jump out of the for loop
                     if (idxTmp == get<1>(it3).size())
                     {
                         break;
                     }  
                 }
 
-                // 如果结果为空，跳过该位点
+                // If the result is empty, skip the site
                 if (lineNameVecTmp.size() == 0)
                 {
                     continue;
@@ -559,11 +559,11 @@ int MULTIINTER::save_result(
                 
                 outStream << join(lineNameVecTmp, ",") << "\t" + join(boolVecTmp, "\t") << "\n";
 
-                if (outStream.tellp() >= CACHE_SIZE)  // 缓存大小为 10mb
+                if (outStream.tellp() >= CACHE_SIZE)  // The cache size is 10mb
                 {
                     string outTxt = outStream.str();
                     SAVEClass.save(outTxt);
-                    // 清空 stringstream
+                    // Clearing a stringstream
                     outStream.str(string());
                     outStream.clear();
                 }
@@ -571,11 +571,11 @@ int MULTIINTER::save_result(
         }
     }
 
-    if (outStream.tellp() > 0)  // 最后写一次
+    if (outStream.tellp() > 0)  // Write for the last time
     {
         string outTxt = outStream.str();
         SAVEClass.save(outTxt);
-        // 清空 stringstream
+        // Clearing a stringstream
         outStream.str(string());
         outStream.clear();
     }
