@@ -11,6 +11,7 @@ requirements:
     - gcc >=7.3.0
     - python =3.6
     - zlib
+    - rhash
 
   run:
     - cmake >=3.12
