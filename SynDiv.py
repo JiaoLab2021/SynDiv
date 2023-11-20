@@ -2,8 +2,8 @@
 
 # -*- coding: utf-8 -*-
 
-__data__ = "2023/08/23"
-__version__ = "1.0.8"
+__data__ = "2023/11/20"
+__version__ = "1.0.9"
 __author__ = "Zezhen Du"
 __email__ = "dzz0539@gmail.com or dzz0539@163.com"
 
@@ -14,6 +14,7 @@ import shutil
 import subprocess
 import tempfile
 import logging
+import gzip
 
 # include
 include_dir = os.path.dirname(os.path.realpath(__file__)) + os.sep
@@ -95,22 +96,39 @@ def getLength(fastaFilePath, outputFilePath):
     :param outputFilePath:  output length to file
     :return: 0
     """
-    with open(fastaFilePath, "r") as f:
-        seq = ""
-        name = ""
-        length_dict = {}
-        for line in f:
-            if line.startswith('>'):
-                if seq != "":
-                    # Count the length of the sequence and save it in the dictionary
-                    length_dict[name] = len(seq)
-                    seq = ""
-                name = line.strip()[1:]
-            else:
-                seq += line.strip()
-        # process the last sequence
-        length_dict[name] = len(seq)
-
+    if fastaFilePath.endswith('.gz'):
+        with gzip.open(fastaFilePath, "rt") as f:
+            seq = ""
+            name = ""
+            length_dict = {}
+            for line in f:
+                if line.startswith('>'):
+                    if seq != "":
+                        # Count the length of the sequence and save it in the dictionary
+                        length_dict[name] = len(seq)
+                        seq = ""
+                    name = line.strip()[1:]
+                else:
+                    seq += line.strip()
+            # process the last sequence
+            length_dict[name] = len(seq)
+    else:
+        with open(fastaFilePath, "r") as f:
+            seq = ""
+            name = ""
+            length_dict = {}
+            for line in f:
+                if line.startswith('>'):
+                    if seq != "":
+                        # Count the length of the sequence and save it in the dictionary
+                        length_dict[name] = len(seq)
+                        seq = ""
+                    name = line.strip()[1:]
+                else:
+                    seq += line.strip()
+            # process the last sequence
+            length_dict[name] = len(seq)
+        
     # Output the ID and length of each sequence
     with open(outputFilePath, "w") as f:
         for seq_id, seq_len in length_dict.items():

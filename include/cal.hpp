@@ -227,7 +227,7 @@ namespace CALNAME
         uint32_t qryEnd = 0;
         // 记录遍历到了 '_ref_seq' 以及对应的坐标
         uint32_t refLoci = 0;
-        int idxTmp = -1;
+        int idxTmp = -1;  //Record the index at the end of the previous find_loci() function, and the next loop can directly skip those indexes
         uint32_t qryLoci = 0;
 
         tuple<string, uint32_t, uint32_t> get_alignment_loc(

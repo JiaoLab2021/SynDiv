@@ -192,8 +192,7 @@ int main_cal(int argc, char* argv[])
     cerr << "[" << __func__ << "::" << getTime() << "] " << "readBuffer: " << readBuffer << " MB" << endl;
 
     // 如果调试代码，线程数设置为1
-    if (debugCal)
-    {
+    if (debugCal) {
         threadsCal = 1;
     }
 
@@ -224,8 +223,7 @@ int main_cal(int argc, char* argv[])
 
     /* ************************************ Calculating Syntenic Diversity ************************************ */
     cerr << "[" << __func__ << "::" << getTime() << "] " << "Calculating Syntenic Diversity ..." << endl;
-    if (fastBool)
-    {
+    if (fastBool) {
         CALNAME::calculate_fast(
             refLenMap, 
             SynCoorTmp, 
@@ -234,9 +232,7 @@ int main_cal(int argc, char* argv[])
             allSynNum, 
             outputFileName
         );
-    }
-    else
-    {
+    } else {
         CALNAME::calculate(
             refLenMap, 
             SynCoorTmp, 
@@ -277,11 +273,11 @@ void help_cal(char* argv[])
 
 
 /**
- * @brief 解析参数
+ * @brief Parse parameters
  * 
- * @param alignsTitles     aligns 文件 title
- * @param alignsVec        aligns 路径Vec
- * @param syriConfigFileName   syri 输出的配置文件
+ * @param alignsTitles     aligns file title
+ * @param alignsVec        aligns path Vec
+ * @param syriConfigFileName   Configuration file output by syri
  * 
  * @return make_tuple(alignsMap, sampleSampleSyriMap)       map<sampleName, alignsPath>, map<sample1, map<sample2, syriOutPath> >
 */
@@ -289,34 +285,36 @@ tuple<map<string, string>, map<string, map<string, string> > > CALNAME::aligns_p
     const vector<string> & alignsTitles, 
     const vector<string> & alignsVec, 
     const string & syriConfigFileName
-)
-{
+) {
     /* ************************************* aligns ************************************* */
     map<string, string> alignsMap;  // map<sampleName, alignsPath>
 
-    uint32_t indexTmp = 0;  // 记录 title 的索引
-    for (auto iter1 : alignsVec)
-    {
+    uint32_t indexTmp = 0;  // Index of record title
+    for (auto iter1 : alignsVec) {
         string alignsPathTmp = iter1;
         string ailgnsTitleTmp;
 
-        // 如果含有 title
-        if (alignsTitles.size() > 0)
-        {
+        // If it contains title
+        if (alignsTitles.size() > 0) {
             ailgnsTitleTmp = alignsTitles[indexTmp];
-        }
-        else
-        {
-            vector<string> alignsPathVecTmp = split(alignsPathTmp, "/");  // 路径拆分
-            ailgnsTitleTmp = alignsPathVecTmp[alignsPathVecTmp.size() - 1];  // 最后一个
-            std::regex reg1(".aligns");  // 替换
-            ailgnsTitleTmp = regex_replace(ailgnsTitleTmp, reg1, "");  // 'An-1.aligns' 删除 '.aligns'
+        } else {
+            vector<string> alignsPathVecTmp = split(alignsPathTmp, "/");  // split
+            ailgnsTitleTmp = alignsPathVecTmp.back();  // last
+            
+            std::regex reg1;
+            if (ailgnsTitleTmp.substr(ailgnsTitleTmp.length() - 3) == ".gz") {
+                reg1 = std::regex(".aligns.gz");
+            } else {
+                reg1 = std::regex(".aligns");
+            }
+
+            ailgnsTitleTmp = regex_replace(ailgnsTitleTmp, reg1, "");  // replace
         }
 
-        // 赋值
+        // Assignment
         alignsMap[ailgnsTitleTmp] = alignsPathTmp;
 
-        indexTmp++;  // 索引迭代
+        indexTmp++;  // Index iteration
     }
 
     /* ************************************* syri.out ************************************* */
@@ -327,9 +325,8 @@ tuple<map<string, string>, map<string, map<string, string> > > CALNAME::aligns_p
 
     // read line
     string line;
-    while (GzChunkReaderClass.read_line(line))
-    {
-        // 跳过空行
+    while (GzChunkReaderClass.read_line(line)) {
+        // Skip empty lines
         if (line.empty())
         {
             continue;
@@ -557,18 +554,18 @@ int CALNAME::COORTRANS::next_loci()
 }
 
 /**
- * @brief 寻找loci
+ * @brief Find loci
  * 
- * @param chr_  要找的染色体
- * @param refLoci_  要找的坐标
- * @return uint32_t  0->遍历完/没找到, >0->坐标
+ * @param chr_      The chromosome you are looking for
+ * @param refLoci_  The coordinates you are looking for
+ * @return uint32_t  0->Traversed/not found, >0->Coordinates
 **/
 uint32_t CALNAME::COORTRANS::find_loci(
     string chr_, 
     uint32_t refLoci_
 )
 {
-    /* ***************************** 遍历完，返回 ‘0’ ***************************** */
+    /* ***************************** After traversing, return ‘0’ ***************************** */
     if (endBool)
     {
         return 0;
