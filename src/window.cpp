@@ -5,17 +5,17 @@ using namespace std;
 
 int main_window(int argc, char* argv[])
 {
-    // 参考基因组
+    // reference genome
     string referenceFileName;
 
-    // cal计算的得分
+    // cal calculated score
     string calFileName;
 
-    // 窗口和步长
+    // window and step size
     uint32_t windowSize = 5000;
     uint32_t stepSize = 1000;
 
-    // 输出文件名
+    // Output file name
     string outputFileName;
 
     //Parse command line options

@@ -28,23 +28,22 @@ using namespace std;
 void help_no_syn(char* argv[]);
 int main_no_syn(int argc, char* argv[]);
 
-// 调试代码
+// debug
 extern bool debugNoSyn;
 
-namespace NOSYN
-{
-    // kseq.h 打开文件
+namespace NOSYN {
+    // open file
     KSEQ_INIT(gzFile, gzread)
 
-    // 所有索引基因组的染色体长度
+    // Chromosome length of all query genomes
     class LENGTH
     {
     private:
-        // 染色体长度文件
+        // chromosome length file
         vector<string> lengthsVec_;
         vector<string> lengthsTitles_;
 
-        // 所有样品的长度信息
+        // Length information for all samples
         unordered_map<string, unordered_map<string, uint32_t> > sampleChrLenMap;  // map<sample, map<chr, chrLen> >
     public:
         LENGTH(
@@ -57,119 +56,108 @@ namespace NOSYN
         ~LENGTH() {}
 
         /**
-         * @brief 打开文件
+         * @brief open file
          * 
          * @return void
         **/
-        void index_lengths()
-        {
-            for (size_t i = 0; i < lengthsVec_.size(); i++)
-            {
-                // 染色体长度文件
+        void index_lengths() {
+            for (size_t i = 0; i < lengthsVec_.size(); i++) {
+                // chromosome length file
                 string lengthFileName = lengthsVec_[i];
 
                 // title
                 string sampleName = "";
 
 
-                // 如果含有title，用列表里的，如果不含有，根据文件名提取
-                if (lengthsTitles_.size() > 0)
-                {
+                // If title is included, use the one in the list. If not, extract it based on the file name.
+                if (lengthsTitles_.size() > 0) {
                     sampleName = lengthsTitles_[i];
-                }
-                else  // 否则提取
-                {
-                    vector<string> lengthFileNameVec = split(lengthFileName, "/");  // 路径拆分
-                    string baseName = lengthFileNameVec[lengthFileNameVec.size() - 1];  // 文件名
-                    vector<string> baseNameVec = split(baseName, "."); // 按 '.' 拆分
-                    sampleName = baseNameVec[0];  // 样品名为列表中第一个元素
+                } else {
+                    vector<string> lengthFileNameVec = split(lengthFileName, "/");  // path splitting
+                    string baseName = lengthFileNameVec.back();  // file name
+                    vector<string> baseNameVec = split(baseName, ".");  // Split by '.'
+                    sampleName = baseNameVec[0];  // The sample name is the first element in the list
                 }
 
-                // 初始化字典
+                // initialize dictionary
                 sampleChrLenMap[sampleName];
 
                 // open file
                 GzChunkReader GzChunkReaderClass(lengthFileName);
                 // read line
                 string line;
-                while (GzChunkReaderClass.read_line(line))
-                {
-                    // 跳过空行
-                    if (line.empty())
-                    {
+                while (GzChunkReaderClass.read_line(line)) {
+                    // Skip empty lines
+                    if (line.empty()) {
                         continue;
                     }
 
-                    // 拆分
+                    // split
                     std::istringstream iss(line);
                     vector<string> lineVec(std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>());
 
-                    // 检查列数是否符合规定
-                    if (lineVec.size() != 2)
-                    {
+                    // Check whether the number of columns meets the requirements
+                    if (lineVec.size() != 2) {
                         cerr << "[" << __func__ << "::" << getTime() << "] "
                             << "Error: the number of columns is not 2 -> " << line << endl;
                         exit(1);
                     }
 
-                    // 染色体号和长度信息
+                    // Chromosome number and length information
                     string chromosome = lineVec[0];
                     uint32_t chrLen = stol(lineVec[1]);
                     
-                    // 存储
+                    // storage
                     sampleChrLenMap[sampleName][chromosome] = chrLen;
                 }
             }
         }
 
         /**
-         * @brief 获取染色体长度
+         * @brief Get chromosome length
          * 
-         * @param sample 样品名
-         * @param chr    染色体号
+         * @param sample Sample name
+         * @param chr    chromosome
          * 
          * @return uint32_t
         **/
         uint32_t get_length(
             const string & sample, 
             const string & chr
-        )
-        {
-            // 查找染色体长度
-            // 找样品
+        ) {
+            // Find chromosome length
+            // sample
             auto fintIter1 = sampleChrLenMap.find(sample);
-            // 如果没有，报错
-            if (fintIter1 == sampleChrLenMap.end())
-            {
+            // If not, report an error
+            if (fintIter1 == sampleChrLenMap.end()) {
                 cerr << "[" << __func__ << "::" << getTime() << "] "
                     << "Error: '" << sample << "' not present in chromosome length file." << endl;
                 exit(1);
             }
-            // 找染色体
+            // find chromosome
             auto findIter2 = fintIter1->second.find(chr);
-            if (findIter2 == fintIter1->second.end())
-            {
+            if (findIter2 == fintIter1->second.end()) {
                 cerr << "[" << __func__ << "::" << getTime() << "] "
                     << "Error: the length of '" << chr << "' was not found -> " << sample << endl;
                 exit(1);
             }
 
-            // 染色体长度
+            // chromosome length
             return findIter2->second;
         }
     };
 
 
-    // 将 CALNAME::SYNCOOR 作为基类
+    // Make CALNAME::SYNCOOR a base class
     class NOSYNCOOR:public CALNAME::SYNCOOR
     {
     private:
 
     public:
-        // 记录非共线性的坐标
+        // Record non-collinear coordinates
         map<string, map<uint32_t, map<string, vector<tuple<uint32_t, uint32_t> > > > > chrStartSampleLociVecMap; // map<chr, map<refStart, map<sample, vector<tuple<start, end> > > > >
 
-        // 输出字符串
+        // Output string
         string outTxt;
 
         NOSYNCOOR() {}

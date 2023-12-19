@@ -37,8 +37,7 @@ public:
     SAVE(string aliFileName) {
         outputFileName_ = aliFileName;
 
-        if (outputFileName_.find(".gz") != string::npos || outputFileName_.find(".GZ") != string::npos)
-        {
+        if (outputFileName_.find(".gz") != string::npos || outputFileName_.find(".GZ") != string::npos) {
             // open file
             gzfpO = gzopen(outputFileName_.c_str(), "wb");
             if(!gzfpO)
@@ -47,13 +46,10 @@ public:
                     << "'" << outputFileName_ << "': No such file or directory or possibly reached the maximum open file limit. You can set 'ulimit -n' to a larger value to continue." << endl;
                 exit(1);
             }
-        }
-        else if (outputFileName_.size() > 0)
-        {
+        } else if (outputFileName_.size() > 0) {
             // open file
             fpO.open(outputFileName_, ios::out);
-            if(!fpO)
-            {
+            if(!fpO) {
                 cerr << "[" << __func__ << "::" << getTime() << "] " 
                     << "'" << outputFileName_ << "': No such file or directory or possibly reached the maximum open file limit. You can set 'ulimit -n' to a larger value to continue." << endl;
                 exit(1);
@@ -61,13 +57,10 @@ public:
         }
     }
     ~SAVE() {
-        if (outputFileName_.find(".gz") != string::npos || outputFileName_.find(".GZ") != string::npos)
-        {
+        if (outputFileName_.find(".gz") != string::npos || outputFileName_.find(".GZ") != string::npos) {
             // close file
             gzclose(gzfpO);
-        }
-        else if (outputFileName_.size() > 0)
-        {
+        } else if (outputFileName_.size() > 0) {
             // close file
             fpO.close();
         }

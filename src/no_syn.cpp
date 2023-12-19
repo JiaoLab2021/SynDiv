@@ -6,21 +6,21 @@ using namespace std;
 // define parameter checking macro
 #define PARAMETER_CHECK(param, paramLen, actualLen) ((strncmp(argv[i], param, min(actualLen, paramLen))== 0) && (actualLen == paramLen))
 
-// 调试代码
+// debug
 bool debugNoSyn = false;
 
 int main_no_syn(int argc, char* argv[])
 {
-    // 共线性坐标
+    // syntenic coordinates
     string coorFileName;
 
-    // 染色体长度文件
+    // chromosome length file
     vector<string> lengthsVec;
     vector<string> lengthsTitles;
-    // 判断是否有 titlename
+    // Determine whether there is titlename
     bool haveTitles = false;
 
-    // 输出文件名
+    // output file name
     string outputFileName;
 
     //Parse command line options
@@ -135,7 +135,7 @@ int main_no_syn(int argc, char* argv[])
     /* ************************************ Save The Result ************************************ */
     cerr << "[" << __func__ << "::" << getTime() << "] " << "Results are being saved to '" << outputFileName << "'" << endl;
     SAVE SaveClass(outputFileName);
-    SaveClass.save(NoSynCoor.outTxt);  // 保存
+    SaveClass.save(NoSynCoor.outTxt);  // save result
 
     cerr << "[" << __func__ << "::" << getTime() << "] " << "Done ..." << endl;
     
@@ -162,9 +162,9 @@ void help_no_syn(char* argv[])
 
 
 /**
- * @brief 寻找非共线性的坐标
+ * @brief Find non-syntenic coordinates
  * 
- * @param lengthClass  样品染色体长度class
+ * @param lengthClass  Sample chromosome length class
  * 
  * @return void
 **/
@@ -172,25 +172,22 @@ void NOSYN::NOSYNCOOR::find_no_syn_coor(
     LENGTH & lengthClass
 )
 {   
-    // 遍历共线性坐标
-    for (auto iter1 = coorChrLociSampleLociMap.begin(); iter1 != coorChrLociSampleLociMap.end(); iter1++)  // map<refChr, map<refStart, map<sample, tuple(start, end)> > >
-    {
-        string chrTmp = iter1->first;  // 染色体号
+    // Traverse syntenic coordinates
+    for (auto iter1 = coorChrLociSampleLociMap.begin(); iter1 != coorChrLociSampleLociMap.end(); iter1++) {  // map<refChr, map<refStart, map<sample, tuple(start, end)> > >
+        string chrTmp = iter1->first;  //chromosome
 
-        // 非共线性的数量，判断是否需要更改参考基因组的坐标，防止重复添加坐标
+        // The number of non-synteny determines whether the coordinates of the reference genome need to be changed to prevent repeated addition of coordinates.
         uint32_t preNoSynNum = 0;
 
-        uint32_t refStart;  // 参考基因组的起始
-        uint32_t refEnd;  // 参考基因组的终止
+        uint32_t refStart;  // Start of reference genome
+        uint32_t refEnd;  // End of reference genome
 
+        // Used to determine whether the non-synteny coordinates of the sample in a small area have been found
+        unordered_map<string, bool> sampleNoSynFindBoolMap;  // map<sample, bool>   true->found it   false->did not find
 
-        // 用于判断样品在小区域中的非共线性坐标是否被找到
-        unordered_map<string, bool> sampleNoSynFindBoolMap;  // map<sample, bool>   true->找到了   false->没找到
-        // 初始化每个样品的非共线性坐标是否被找到
-        for (auto iter1 : sampleNameVec)  // map<sample, bool>
-        {
-            if (iter1 == "reference")
-            {
+        // Initialize whether the non-synteniy coordinates of each sample are found
+        for (auto iter1 : sampleNameVec) {  // map<sample, bool>
+            if (iter1 == "reference") {
                 continue;
             }
 
@@ -198,199 +195,192 @@ void NOSYN::NOSYNCOOR::find_no_syn_coor(
         }
 
 
-        for (auto iter2 = iter1->second.begin(); iter2 != iter1->second.end(); iter2++)  // map<refStart, map<sample, tuple(start, end)> >
-        {
-            uint32_t refStartTmp;  // 参考基因组的起始
-            uint32_t refEndTmp;  // 参考基因组的终止
+        for (auto iter2 = iter1->second.begin(); iter2 != iter1->second.end(); iter2++) {  // map<refStart, map<sample, tuple(start, end)> >
+            uint32_t refStartTmp;  // Start of reference genome
+            uint32_t refEndTmp;  // End of reference genome
 
-            // 节点的起始和终止位置
+            // The starting and ending positions of the node
             auto findIter1 = iter2->second.find("reference");
-            if (findIter1 != iter2->second.end())
-            {
+            if (findIter1 != iter2->second.end()) {
                 refStartTmp = get<0>(findIter1->second);
                 refEndTmp = get<1>(findIter1->second);
-            }
-            else
-            {
+            } else {
                 cerr << "[" << __func__ << "::" << getTime() << "] "
                     << "Error: 'reference' not present in 'coorChrLociSampleLociMap' -> " << iter2->first << endl;
                 exit(1);
             }
             
-            // 非共线性的数量，判断是否需要更改参考基因组的坐标，防止重复添加坐标
+            // The number of non-synteny determines whether the coordinates of the reference genome need to be changed to prevent repeated addition of coordinates.
             uint32_t noSynNum = 0;
 
-            // 如果上一个节点全是共线性的，更新参考基因组的坐标
-            if (preNoSynNum  == 0)
-            {
+            // If the previous nodes are all synteny, update the coordinates of the reference genome
+            if (preNoSynNum  == 0) {
                 refStart = refStartTmp;
                 refEnd = refEndTmp;
             }
 
-            for (auto iter3 = iter2->second.begin(); iter3 != iter2->second.end(); iter3++)  // map<sample, tuple(start, end)>
-            {
-                string sampleTmp = iter3->first;  // 样品名
-                uint32_t StartTmp = get<0>(iter3->second);  // 起始
-                uint32_t EndTmp = get<1>(iter3->second);  // 终止
+            for (auto iter3 = iter2->second.begin(); iter3 != iter2->second.end(); iter3++) {  // map<sample, tuple(start, end)>
+                string sampleTmp = iter3->first;  // sample name
+                uint32_t StartTmp = get<0>(iter3->second);  // start
+                uint32_t EndTmp = get<1>(iter3->second);  // end
 
-                // 参考基因组的直接跳过 
-                if (sampleTmp == "reference")
-                {
+                // Direct skipping of reference genome
+                if (sampleTmp == "reference") {
                     continue;
                 }
 
-                // 记录为非共线性的
-                if (StartTmp == 0 || EndTmp == 0)
-                {
-                    // 非共线性数量加1
+                // Recorded as non-synteny
+                if (StartTmp == 0 || EndTmp == 0) {
+                    // Add 1 to the number of non-synteny
                     noSynNum++;
 
-                    // 找非共线性的位置
-                    // 先初始化字典
-                    if (chrStartSampleLociVecMap.find(chrTmp) == chrStartSampleLociVecMap.end())  // map<chr, map<refStart, map<sample, vector<tuple<start, end> > > > >
-                    {
-                        chrStartSampleLociVecMap[chrTmp];
-                    }
-                    if (chrStartSampleLociVecMap[chrTmp].find(refStart) == chrStartSampleLociVecMap[chrTmp].end())  // map<refStart, map<sample, vector<tuple<start, end> > > >
-                    {
-                        chrStartSampleLociVecMap[chrTmp][refStart];
-                    }
+                    // Find non-synteny locations
+                    // Initialize the dictionary first
+                    auto& startSampleLociVecMap = chrStartSampleLociVecMap.emplace(chrTmp, map<uint32_t, map<string, vector<tuple<uint32_t, uint32_t> > > >()).first->second;  // map<string, map<uint32_t, map<string, vector<tuple<uint32_t, uint32_t> > > > >
+                    auto& sampleLociVecMap = startSampleLociVecMap.emplace(refStart, map<string, vector<tuple<uint32_t, uint32_t> > >()).first->second;  // map<uint32_t, map<string, vector<tuple<uint32_t, uint32_t> > > >
 
-                    // 如果该sample坐标被找到了，跳过
-                    if (sampleNoSynFindBoolMap[sampleTmp])  // map<sample, findBool>
-                    {
+                    // If the sample coordinates are found, skip
+                    if (sampleNoSynFindBoolMap[sampleTmp]) {  // map<sample, findBool>
                         continue;
                     }
 
-                    // 临时坐标
+                    // Temporary coordinates
                     uint32_t noSynStartTmp = 1;
                     uint32_t noSynEndTmp = 1;
 
-                    auto iter2Tmp = iter2;  // 临时节点
-                    
-                    if (iter2 == iter1->second.begin())  // 如果是第一个节点
-                    {
+                    auto startIter = iter2;  // start iter
+
+                    if (iter2 == iter1->second.begin()) {  // If it is the first node
                         noSynStartTmp = 1;
-                    }
-                    else
-                    {
-                        iter2Tmp = iter2;
-                        iter2Tmp--;  // 向上移动一位
+                    } else {
+                        startIter = iter2;
+                        startIter--;  // Move up one position
 
-                        // 如果上一个节点还是0，且不为第一个节点，继续前移
-                        while (iter2Tmp != iter1->second.begin() && get<1>(iter2Tmp->second[sampleTmp]) == 0)
-                        {
-                            iter2Tmp--;  // 向上移动一位
+                        // If the previous node is still 0 and is not the first node, continue to move forward.
+                        while (startIter != iter1->second.begin() && get<1>(startIter->second[sampleTmp]) == 0) {
+                            startIter--;  // Move up one position
                         }
 
-                        // 赋值前一个坐标
-                        if (get<1>(iter2Tmp->second[sampleTmp]) != 0)
-                        {
-                            noSynStartTmp = get<1>(iter2Tmp->second[sampleTmp]) + 1;
+                        // Assign the previous coordinate
+                        if (get<1>(startIter->second[sampleTmp]) != 0) {
+                            noSynStartTmp = get<1>(startIter->second[sampleTmp]) + 1;
                         }
                     }
 
-                    
-                    iter2Tmp = iter2;  // 初始化迭代器
-                    iter2Tmp++;  // 向下移动一位
+                    auto endIter = iter2;  // end iter
+                    endIter++;  // Move down one position
 
-                    // 如果下一个节点还是0，且不为最后一个节点，继续后移
-                    while (iter2Tmp != iter1->second.end() && get<0>(iter2Tmp->second[sampleTmp]) == 0)
-                    {
-                        iter2Tmp++;  // 向下移动一位
+                    // If the next node is still 0 and is not the last node, continue to move backward.
+                    while (endIter != iter1->second.end() && get<0>(endIter->second[sampleTmp]) == 0) {
+                        endIter++;  // Move down one position
                     }
 
-                    // 如果是最后一个节点，则为染色体长度
-                    if (iter2Tmp == iter1->second.end())
-                    {
-                        // 染色体长度
+                    // If it is the last node, it is the length of the chromosome
+                    if (endIter == iter1->second.end()) {
+                        // chromosome length
                         noSynEndTmp = lengthClass.get_length(sampleTmp, chrTmp);
-                    }
-                    else
-                    {
-                        // 下一个节点的起始坐标 -1
-                        noSynEndTmp = get<0>(iter2Tmp->second[sampleTmp]) - 1;
+                    } else {
+                        // Starting coordinate of next node -1
+                        noSynEndTmp = get<0>(endIter->second[sampleTmp]) - 1;
                     }
 
-                    // 起始必须小于终止
-                    if (noSynStartTmp < noSynEndTmp)
-                    {
-                        // 初始化字典
-                        if (chrStartSampleLociVecMap[chrTmp][refStart].find(sampleTmp) == chrStartSampleLociVecMap[chrTmp][refStart].end())
-                        {
-                            chrStartSampleLociVecMap[chrTmp][refStart][sampleTmp];
+                    // start must be less than end
+                    if (noSynStartTmp < noSynEndTmp) {
+                        // initialize dictionary
+                        auto& tupVec = sampleLociVecMap.emplace(sampleTmp, vector<tuple<uint32_t, uint32_t> >()).first->second;  // map<string, vector<tuple<uint32_t, uint32_t> > >
+
+                        // If the length becomes shorter instead of longer, it means the coordinates are wrong and need to be corrected.
+                        int64_t noSynLenTmp = static_cast<int64_t>(noSynEndTmp) - static_cast<int64_t>(noSynStartTmp);
+                        // start
+                        if (noSynLenTmp > 10000 && startIter != iter1->second.begin()) {
+                            for (size_t i = 0; i < 20; i++) {
+                                startIter--;
+                                
+                                if (
+                                    get<1>(startIter->second[sampleTmp]) != 0 && 
+                                    abs(static_cast<int64_t>(noSynEndTmp) - static_cast<int64_t>(get<1>(startIter->second[sampleTmp]))) - noSynLenTmp < -1000
+                                ) {
+                                    noSynStartTmp = get<1>(startIter->second[sampleTmp]) + 1;
+                                    noSynLenTmp = abs(static_cast<int64_t>(noSynEndTmp) - static_cast<int64_t>(noSynStartTmp));
+                                    break;
+                                }
+
+                                if (startIter == iter1->second.begin()) break;
+                            }
+                        }
+
+                        // end
+                        if (noSynLenTmp > 10000 && endIter != iter1->second.end()) {
+                            for (size_t i = 0; i < 20; i++) {
+                                endIter++;
+                                if (endIter == iter1->second.end()) break;
+
+                                if (
+                                    get<0>(endIter->second[sampleTmp]) != 0 && 
+                                    abs(static_cast<int64_t>(get<0>(endIter->second[sampleTmp])) - static_cast<int64_t>(noSynStartTmp)) - noSynLenTmp < -1000
+                                ) {
+                                    noSynEndTmp = get<0>(endIter->second[sampleTmp]) - 1;
+                                    break;
+                                }
+                            }
                         }
                         
-                        chrStartSampleLociVecMap[chrTmp][refStart][sampleTmp].push_back(make_tuple(noSynStartTmp, noSynEndTmp));  // 记录非共线性坐标
+                        tupVec.push_back(make_tuple(min(noSynStartTmp, noSynEndTmp), max(noSynStartTmp, noSynEndTmp)));  // Record non-collinear coordinates
 
-                        sampleNoSynFindBoolMap[sampleTmp] = true;  // 记录该样品被找到了
+                        sampleNoSynFindBoolMap[sampleTmp] = true;  // Record that the sample was found
                     }
-                }
-                else
-                {
-                    /* 判断是否为最后一个节点 */
-                    auto iter2Tmp = iter2;  // 临时节点
-                    iter2Tmp++;  // 向下移动一位
+                } else {
+                    // Determine whether it is the last node
+                    auto iter2Tmp = iter2;  // Temporary node
+                    iter2Tmp++;  // Move down one position
 
-                    // 如果是第一个节点，判断是否从 1 开始的比对。如果和参考基因组是共线性的话，不用找染色体前半部分，
-                    if (iter2 == iter1->second.begin() && StartTmp == 0)
-                    {
-                        // 初始化字典
-                        if (chrStartSampleLociVecMap[chrTmp][refStart].find(sampleTmp) == chrStartSampleLociVecMap[chrTmp][refStart].end())
-                        {
-                            chrStartSampleLociVecMap[chrTmp][refStart][sampleTmp];
+                    // If it is the first node, determine whether the comparison starts from 1. If it is collinear with the reference genome, there is no need to look for the first half of the chromosome.
+                    if (iter2 == iter1->second.begin() && StartTmp == 0) {
+                        // initialize dictionary
+                        auto& sampleLociVecMap = chrStartSampleLociVecMap[chrTmp][refStart];
+                        if (sampleLociVecMap.find(sampleTmp) == sampleLociVecMap.end()) {
+                            sampleLociVecMap[sampleTmp];
                         }
-
-                        chrStartSampleLociVecMap[chrTmp][refStart][sampleTmp].push_back(make_tuple(1, StartTmp - 1));  // 赋值
-                    }
-                    else if (iter2Tmp == iter1->second.end())  // 如果是最后一个节点，判断是否到达染色体结尾
-                    {
-                        // 染色体长度
+                        sampleLociVecMap[sampleTmp].push_back(make_tuple(1, StartTmp - 1));
+                    } else if (iter2Tmp == iter1->second.end()) {  // If it is the last node, determine whether it reaches the end of the chromosome
+                        // chromosome length
                         uint32_t noSynEndTmp = lengthClass.get_length(sampleTmp, chrTmp);
-
-                        if (EndTmp < noSynEndTmp)
-                        {
-                            // 初始化字典
-                            
-                            if (chrStartSampleLociVecMap[chrTmp][refStart].find(sampleTmp) == chrStartSampleLociVecMap[chrTmp][refStart].end())
-                            {
-                                chrStartSampleLociVecMap[chrTmp][refStart][sampleTmp];
+                        if (EndTmp < noSynEndTmp) {
+                            // initialize dictionary
+                            auto& sampleLociVecMap = chrStartSampleLociVecMap[chrTmp][refStart];
+                            if (sampleLociVecMap.find(sampleTmp) == sampleLociVecMap.end()) {
+                                sampleLociVecMap[sampleTmp];
                             }
-
-                            chrStartSampleLociVecMap[chrTmp][refStart][sampleTmp].push_back(make_tuple(EndTmp + 1, noSynEndTmp));  // 赋值
+                            sampleLociVecMap[sampleTmp].push_back(make_tuple(EndTmp + 1, noSynEndTmp));
                         }
                     }
                     
-                    // 更新该样品被没找到
+                    // Update The sample was not found
                     sampleNoSynFindBoolMap[sampleTmp] = false;
                 }
             }
-            // 更新非共线性的数量
+            // Update the number of non-synteny
             preNoSynNum = noSynNum;
         }
     }
 
 
     // saving the result
-    stringstream outStream; // 使用 stringstream 代替字符串拼接
-    static const uint64_t CACHE_SIZE = 1024 * 1024 * 10; // 缓存大小为 10mb
+    stringstream outStream;  // Use stringstream instead of string concatenation
+    static const uint64_t CACHE_SIZE = 1024 * 1024 * 10;  // Cache size is 10mb
     outStream.str().reserve(CACHE_SIZE);
 
-    // 结果转为字符串
-    for (const auto& [chr, startSampleLociVecMap] : chrStartSampleLociVecMap)  // map<chr, map<refStart, map<sample, vector<tuple<start, end> > > > >
-    {
-        for (const auto& [refStart, sampleLociVecMap] : startSampleLociVecMap)  // map<refStart, map<sample, vector<tuple<start, end> > > >
-        {
+    // Convert result to string
+    for (const auto& [chr, startSampleLociVecMap] : chrStartSampleLociVecMap) {  // map<chr, map<refStart, map<sample, vector<tuple<start, end> > > > >
+        for (const auto& [refStart, sampleLociVecMap] : startSampleLociVecMap) {  // map<refStart, map<sample, vector<tuple<start, end> > > >
             if (sampleLociVecMap.empty()) continue;
 
             outStream << chr << "\t" << to_string(refStart);
 
-            for (const auto& [sample, lociVec] : sampleLociVecMap)  // map<sample, vector<tuple<start, end> > >
-            {
+            for (const auto& [sample, lociVec] : sampleLociVecMap) {  // map<sample, vector<tuple<start, end> > >
                 outStream << "\t" << sample << ":";
             
-                for (size_t i = 0; i < lociVec.size(); ++i)
-                {
+                for (size_t i = 0; i < lociVec.size(); ++i) {
                     if (i > 0) outStream << ";";
 
                     outStream << to_string(get<0>(lociVec[i])) << "-" << to_string(get<1>(lociVec[i]));
@@ -400,19 +390,18 @@ void NOSYN::NOSYNCOOR::find_no_syn_coor(
             outStream << "\n";
         }
 
-        if (outStream.tellp() >= CACHE_SIZE)  // 缓存大小为 10mb
+        if (outStream.tellp() >= CACHE_SIZE)  // Cache size is 10mb
         {
             outTxt += outStream.str();
-            // 清空 stringstream
+            // Clear stringstream
             outStream.str(string());
             outStream.clear();
         }
     }
 
-    if (outStream.tellp() > 0)  // 最后写一次
-    {
+    if (outStream.tellp() > 0) {  // Write for the last time
         outTxt += outStream.str();
-        // 清空 stringstream
+        // Clear stringstream
         outStream.str(string());
         outStream.clear();
     }

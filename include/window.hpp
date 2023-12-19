@@ -10,6 +10,7 @@
 #include <tuple>
 #include <string.h>
 #include <getopt.h>
+#include <cmath>
 
 #include "kseq.h"
 #include "get_time.hpp"
@@ -28,28 +29,28 @@ int main_window(int argc, char* argv[]);
 
 namespace Window
 {
-    // 分窗口统计
+    // Statistics by window
     class WINDOW
     {
     private:
-        // 染色体长度
+        // chromosome length
         map<string, uint32_t> refLenMap_;  // map<chr, length>
 
-        // cal计算的得分
+        // cal calculated score
         string calFileName_;
 
-        // 输出文件
+        // output file
         string outputFileName_;
 
-        // 窗口和步长
+        // window and step size
         uint32_t windowSize_;
         uint32_t stepSize_;
 
-        // cal的索引
+        // index of cal
         map<string, vector<double> > chrScoreVecMap_;  // map<chr, vector<score> >
         
     public:
-        // 窗口划分以及平均得分
+        // Window division and average score
         map<string, vector<tuple<uint32_t, uint32_t, double> > > chrWinInfoTupVecMap_;  // map<chr, vector<tuple<start, end, score> > >
 
         WINDOW(
@@ -69,47 +70,34 @@ namespace Window
         ~WINDOW() {}
 
         /**
-         * @brief 根据染色体长度创建window
+         * @brief Create window based on chromosome length
          * 
          * @return int
         **/
-        int make_window()
-        {
+        int make_window() {
             cerr << "[" << __func__ << "::" << getTime() << "] " << "Calculate the number of windows based on the input value ..." << endl;
             cerr << "[" << __func__ << "::" << getTime() << "] " << "Window: " << windowSize_ << endl;
             cerr << "[" << __func__ << "::" << getTime() << "] " << "step: " << stepSize_ << endl;
 
-            for (const auto& [chromosome, length] : refLenMap_)
-            {
-                // 变量绑定
+            for (const auto& [chromosome, length] : refLenMap_) {
+                // variable binding
                 auto& WinInfoTupVec = chrWinInfoTupVecMap_[chromosome];
 
-                // 步数
-                double stepsNumber = double(length)/stepSize_;
+                // Step count
+                double stepsNumber = ceil(double(length)/stepSize_);
 
-                // 如果是浮点数，则向上取整
-                if (stepsNumber - int(stepsNumber) != 0)
-                {
-                    stepsNumber = int(stepsNumber+1);
-                }
-
-                // 制作步长字典
-                for (int i = 0; i < stepsNumber; i++)
-                {
+                // Make step size dictionary
+                for (int i = 0; i < stepsNumber; i++) {
                     uint32_t stepStart = i * stepSize_ + 1;
                     uint32_t stepEnd = stepStart + windowSize_ - 1;
-                    if (i < stepsNumber - 1)
-                    {
+                    if (i < stepsNumber - 1) {
                         WinInfoTupVec.push_back(make_tuple(stepStart, min(stepEnd, length), 0.0));
-                    }
-                    else
-                    {
-                        // 不能超过染色体长度
+                    } else {
+                        // Cannot exceed chromosome length
                         WinInfoTupVec.push_back(make_tuple(stepStart, min(stepEnd, length), 0.0));
 
-                        // 最后一个窗口且位置小于染色体长度
-                        if (stepEnd < length)
-                        {
+                        // The last window and the position is less than the chromosome length
+                        if (stepEnd < length) {
                             WinInfoTupVec.push_back(make_tuple(stepEnd + 1, length, 0.0));
                         }
                     }
@@ -121,7 +109,7 @@ namespace Window
 
 
         /**
-         * @brief 打开cal文件并构建索引
+         * @brief Open the cal file and build the index
          * 
          * @return 0
         **/
@@ -132,64 +120,58 @@ namespace Window
             string chromosome;
             uint32_t length = 0;
 
-            // 变量绑定
+            // variable binding
             vector<double>* ScoreVec;
 
             // open file
             GzChunkReader GzChunkReaderClass(calFileName_);
             // read line
             string line;
-            while (GzChunkReaderClass.read_line(line))
-            {
-                // 跳过空行
-                if (line.empty() || line.find("#") != string::npos)
-                {
+            while (GzChunkReaderClass.read_line(line)) {
+                // Skip empty lines
+                if (line.empty() || line.find("#") != string::npos) {
                     continue;
                 }
 
-                // 拆分
+                // split
                 std::istringstream iss(line);
                 vector<string> lineVec(std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>());
 
-                // 检查数组是否越界
-                if (lineVec.size() != 5)
-                {
+                // Skip empty lines
+                if (lineVec.size() != 5) {
                     cerr << "[" << __func__ << "::" << getTime() << "] " << "Error: The number of columns in the file is not 5." << endl;
                     exit(1);
                 }
 
-                string chromosomeTmp = lineVec[0];  // 临时染色体号
-                uint32_t position = stoul(lineVec[1]);  // 位置
+                string chromosomeTmp = lineVec[0];  // temporary chromosome number
+                uint32_t position = stoul(lineVec[1]);  // loci
                 string scoreS = lineVec[4];
 
-                // 检查是否是数字
-                if (!isdigit(scoreS[0]))
-                {
+                // Check if it is a number
+                if (!isdigit(scoreS[0])) {
                     cerr << "[" << __func__ << "::" << getTime() << "] " << "Error: Identify non-numeric data -> " << scoreS << endl;
                     exit(1);
                 }
 
-                if (chromosomeTmp != chromosome)
-                {
+                if (chromosomeTmp != chromosome) {
                     chromosome = chromosomeTmp;
 
-                    // 检查染色体是否在参考基因组中
-                    if (refLenMap_.find(chromosome) == refLenMap_.end())
-                    {
+                    // Check if the chromosome is in the reference genome
+                    if (refLenMap_.find(chromosome) == refLenMap_.end()) {
                         cerr << "[" << __func__ << "::" << getTime() << "] " << "Error: The reference genome does not contain " << chromosome << "." << endl;
                         exit(1);
                     }
 
                     length = refLenMap_[chromosome];
 
-                    // 初始化
+                    // initialization
                     chrScoreVecMap_[chromosomeTmp] = vector<double>(length, 0.0);
                     ScoreVec = &chrScoreVecMap_[chromosomeTmp];
                 }
                 
                 double score = stod(scoreS);
 
-                // 赋值
+                // Assignment
                 (*ScoreVec)[position] = score;
             }
 
@@ -198,7 +180,7 @@ namespace Window
 
 
         /**
-         * @brief 计算给定索引下vector的平均值
+         * @brief Calculate the average of a vector at a given index
          * 
          * @return 0
         **/
@@ -212,21 +194,18 @@ namespace Window
 
 
         /**
-         * @brief 计算平均值
+         * @brief Calculate average
          * 
          * @return 0
         **/
-        int win_count()
-        {
+        int win_count() {
             cerr << "[" << __func__ << "::" << getTime() << "] " << "Calculate the mean score for each window ..." << endl;
 
-            for (auto& [chromosome, WinInfoTupVec] : chrWinInfoTupVecMap_)  // map<chr, vector<tuple<start, end, score> > >
-            {
-                // 染色体对应的score vector   map<chr, vector<score> >
+            for (auto& [chromosome, WinInfoTupVec] : chrWinInfoTupVecMap_) {  // map<chr, vector<tuple<start, end, score> > >
+                // Score vector map<chr, vector<score> > corresponding to the chromosome
                 const auto& ScoreVec = chrScoreVecMap_[chromosome];
 
-                for (auto& WinInfoTup : WinInfoTupVec)  // vector<tuple<start, end, score> >
-                {
+                for (auto& WinInfoTup : WinInfoTupVec) {  // vector<tuple<start, end, score> >
                     get<2>(WinInfoTup) = average(ScoreVec, get<0>(WinInfoTup) - 1, get<1>(WinInfoTup) - 1);
                 }
             }
@@ -236,42 +215,37 @@ namespace Window
 
 
         /**
-         * @brief 保存结果
+         * @brief save result
          * 
          * @return 0
         **/
-        int save_result()
-        {
+        int save_result() {
             cerr << "[" << __func__ << "::" << getTime() << "] " << "Results are being saved to '" << outputFileName_ << "'" << endl;
 
             SAVE SAVEClass(outputFileName_);
 
-            stringstream outStream; // 使用 stringstream 代替字符串拼接
-            static const uint64_t CACHE_SIZE = 1024 * 1024 * 10; // 缓存大小为 10mb
+            stringstream outStream; // Use stringstream instead of string concatenation
+            static const uint64_t CACHE_SIZE = 1024 * 1024 * 10; // Cache size is 10mb
             outStream.str().reserve(CACHE_SIZE);
             outStream << "#CHROM\tSTART\tEND\tSyntenic_Diversity\n";
 
-            for (auto& [chromosome, WinInfoTupVec] : chrWinInfoTupVecMap_)  // map<chr, vector<tuple<start, end, score> > >
-            {
-                for (auto& WinInfoTup : WinInfoTupVec)  // vector<tuple<start, end, score> >
-                {
+            for (auto& [chromosome, WinInfoTupVec] : chrWinInfoTupVecMap_) {  // map<chr, vector<tuple<start, end, score> > >
+                for (auto& WinInfoTup : WinInfoTupVec) {  // vector<tuple<start, end, score> >
                     outStream << chromosome << "\t" << get<0>(WinInfoTup) << "\t" << get<1>(WinInfoTup) << "\t" 
                             << get<2>(WinInfoTup) << "\n";
-                    if (outStream.tellp() >= CACHE_SIZE)  // 缓存大小为 10mb
-                    {
+                    if (outStream.tellp() >= CACHE_SIZE) {  // Cache size is 10mb
                         string outTxt = outStream.str();
                         SAVEClass.save(outTxt);
-                        // 清空 stringstream
+                        // Clear stringstream
                         outStream.str(string());
                         outStream.clear();
                     }
                 }
 
-                if (outStream.tellp() > 0)  // 最后写一次
-                {
+                if (outStream.tellp() > 0) {  // Write for the last time
                     string outTxt = outStream.str();
                     SAVEClass.save(outTxt);
-                    // 清空 stringstream
+                    // Clear stringstream
                     outStream.str(string());
                     outStream.clear();
                 }

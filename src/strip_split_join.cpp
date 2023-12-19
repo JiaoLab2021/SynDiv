@@ -57,12 +57,10 @@ string join(vector<int> & val, string delim)
     std::string str;
 	int vecSize = val.size();
 	int index = 0;
-	for (auto iter : val)
-	{
+	for (auto iter : val) {
 		str += to_string(iter);
 		
-		if (index != vecSize-1)
-        {
+		if (index != vecSize-1) {
             str += delim;
         }
 		index++;
@@ -81,12 +79,10 @@ string join(vector<long int> & val, string delim)
     std::string str;
 	int vecSize = val.size();
 	int index = 0;
-	for (auto iter : val)
-	{
+	for (auto iter : val) {
 		str += to_string(iter);
 		
-		if (index != vecSize-1)
-        {
+		if (index != vecSize-1) {
             str += delim;
         }
 		index++;
@@ -105,12 +101,10 @@ string join(vector<float> & val, string delim)
     std::string str;
 	int vecSize = val.size();
 	int index = 0;
-	for (auto iter : val)
-	{
+	for (auto iter : val) {
 		str += to_string(iter);
 		
-		if (index != vecSize-1)
-        {
+		if (index != vecSize-1) {
             str += delim;
         }
 		index++;
@@ -129,12 +123,10 @@ string join(vector<string> & val, string delim)
     std::string str;
 	int vecSize = val.size();
 	int index = 0;
-	for (auto iter : val)
-	{
+	for (auto iter : val) {
 		str += iter;
 		
-		if (index != vecSize-1)
-        {
+		if (index != vecSize-1) {
             str += delim;
         }
 		index++;

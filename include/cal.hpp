@@ -24,13 +24,13 @@
 using namespace std;
 
 
-// 调试代码
+// debuging code
 extern bool debugCal;
 
-// 线程数
+// thread number
 extern int threadsCal;
 
-// 读取文件的缓存大小
+// Cache size for reading files
 extern int32_t readBuffer;
 
 // define parameter checking macro
@@ -42,15 +42,15 @@ int main_cal(int argc, char* argv[]);
 
 namespace CALNAME
 {
-    // kseq.h 打开文件
+    // kseq.h open file
     KSEQ_INIT(gzFile, gzread)
 
     /**
-     * @brief 解析参数
+     * @brief Parse parameters
      * 
-     * @param alignsTitles     aligns 文件 title
-     * @param alignsVec        aligns 路径Vec
-     * @param syriConfigFileName   syri 输出的配置文件
+     * @param alignsTitles         aligns file title
+     * @param alignsVec            aligns path Vec
+     * @param syriConfigFileName   Configuration file output by syri
      * 
      * @return make_tuple(alignsMap, sampleSampleSyriMap)       map<sampleName, alignsPath>, map<sample1, map<sample2, syriOutPath> >
     */
@@ -61,36 +61,33 @@ namespace CALNAME
     );
 
 
-
     struct CALSTRUCTURE
     {
         // sampleName
         string sampleName;
 
-        // 记录位点共线性的数量
+        // Record the number of site collinearities
         map<string, map<uint32_t, uint32_t> > sampleSynOutMap;  // map<chr, map<refLoci, synNum> >
 
-        // 记录位点共线性对应的样品名和位置
+        // Record the sample name and position corresponding to site collinearity
         map<string, map<uint32_t, string> > sampleSynOutMapTmp;  // map<chr, map<refLoci, sampleName> >  name2:pos1-pos2;name3:pos1-pos3
     };
 
 
-
-
-    // 坐标转换
+    // Coordinate transformation
     class SYNCOOR
     {
     private:
-        // 共线性坐标文件  'coor' 输出结果
+        // Collinear coordinate file 'coor' output results
         string fileName_;
 
-        // 判断 'sampleNameVec' 中是否含有所有的sample
+        // Determine whether 'sampleNameVec' contains all samples
         bool sampleNameVecBool = false;
     public:
-        // 共线性坐标
+        // collinear coordinates
         map<string, map<int, map<string, tuple<uint32_t, uint32_t> > > > coorChrLociSampleLociMap;  // map<refChr, map<refStart, map<sample, tuple(start, end)> > >
 
-        // 样品名
+        // sample name
         vector<string> sampleNameVec;
 
         SYNCOOR() {}
@@ -99,101 +96,89 @@ namespace CALNAME
         }
         ~SYNCOOR() {}
 
-        // 初始化接口，用于继承类使用
+        // Initialization interface for use by inherited classes
         void init(string fileName) {
             fileName_ = fileName;
         }
 
-        // 构建索引
-        void open_coor()
-        {
+        // build index
+        void open_coor() {
             // open file
             GzChunkReader GzChunkReaderClass(fileName_);
 
             // read line
             string line;
-            while (GzChunkReaderClass.read_line(line))
-            {
-                // 跳过空行
-                if (line.empty())
-                {
+            while (GzChunkReaderClass.read_line(line)) {
+                // Skip empty lines
+                if (line.empty()) {
                     continue;
                 }
 
-                // 制表符拆分
+                // split
                 std::istringstream iss(line);
                 vector<string> lineVec(std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>());
 
-                // 先检查列数是不是三的倍数
-                if (lineVec.size() % 3 != 0)
-                {
+                // First check whether the number of columns is a multiple of three
+                if (lineVec.size() % 3 != 0) {
                     cerr << "[" << __func__ << "::" << getTime() << "] "
                         << "'Error: The number of columns is not a multiple of three -> " << fileName_ << endl;
                     exit(1);
                 }
 
-                // 每三列记录一次
+                // Record every three columns
                 int idxTmp = lineVec.size() / 3;
-                // 临时键 
+                // temporary key 
                 string chrTmp = "";
                 uint32_t refStartTmp = 0;
-                for (size_t i = 0; i < idxTmp; i++)
-                {
+                for (size_t i = 0; i < idxTmp; i++) {
                     string sampleNameTmp = lineVec[3*i + 0];
                     uint32_t qryStartTmp = 0;
                     uint32_t qryEndTmp = 0;
 
-                    // 判断是否是数字，不是一律为0
-                    if (isdigit(lineVec[3*i + 1][0]))
-                    {
-                        qryStartTmp = stol(lineVec[3*i + 1]);
-                    }
-                    if (isdigit(lineVec[3*i + 2][0]))
-                    {
-                        qryEndTmp = stol(lineVec[3*i + 2]);
+                    // Determine whether it is a number, not always 0
+                    if (isdigit(lineVec[3*i + 1][0])) {
+                        qryStartTmp = stoul(lineVec[3*i + 1]);
+                    } if (isdigit(lineVec[3*i + 2][0])) {
+                        qryEndTmp = stoul(lineVec[3*i + 2]);
                     }
                     
-                    // 染色体号
-                    if (i == 0)
-                    {
+                    // chromosome
+                    if (i == 0) {
                         chrTmp = sampleNameTmp;
-                        refStartTmp = stoi(lineVec[3*i + 1]);
+                        refStartTmp = stoul(lineVec[3*i + 1]);
 
-                        // 初始化 map 
-                        if (coorChrLociSampleLociMap.find(chrTmp) == coorChrLociSampleLociMap.end())
-                        {
+                        // initialize map
+                        if (coorChrLociSampleLociMap.find(chrTmp) == coorChrLociSampleLociMap.end()) {
                             coorChrLociSampleLociMap[chrTmp];
                         }
-                        if (coorChrLociSampleLociMap[chrTmp].find(refStartTmp) == coorChrLociSampleLociMap[chrTmp].end())
-                        {
+                        if (coorChrLociSampleLociMap[chrTmp].find(refStartTmp) == coorChrLociSampleLociMap[chrTmp].end()) {
                             coorChrLociSampleLociMap[chrTmp][refStartTmp];
                         }
-                        
+
                         sampleNameTmp = "reference";
                     }
 
-                    // 记录 'sampleName'，只记录第一行的
-                    if (!sampleNameVecBool)
-                    {
+                    // Record 'sampleName', only record the first line
+                    if (!sampleNameVecBool) {
                         sampleNameVec.push_back(sampleNameTmp);
                     }
                     
-                    // 添加到总的哈希表中
+                    // Add to total hash table
                     coorChrLociSampleLociMap[chrTmp][refStartTmp][sampleNameTmp] = make_tuple(qryStartTmp, qryEndTmp);
                 }
 
-                // 只记录第一行的 'sampleName'
+                // Only record the 'sampleName' of the first row
                 sampleNameVecBool = true;
             }
         }
     };
 
 
-    // 坐标转换
+    // Coordinate transformation
     class COORTRANS
     {
     private:
-        // show-align 输出结果 'xx.aligns'
+        // show-align output 'xx.aligns'
         string aliFileName_;
 
         // sampleName
@@ -201,49 +186,49 @@ namespace CALNAME
 
         // open file
         unique_ptr<GzChunkReader> GzChunkReaderClass_;
-        bool endBool = false;  // 记录文件是否遍历完
+        bool endBool = false;  // Record whether the file has been traversed
 
-        // 记录是否要循环接下来的行
-        bool chrBool = true;  // 记录该染色体对是否符合要求，目前是染色体号是否一致，不一致跳过
-        bool aliBool = true;  // 记录该alignment的起始和终止是否是想要的
-        bool findChrBool = true;  // 记录要找的染色体号和当前染色体号是否一致
+        // Log whether to loop through the next lines
+        bool chrBool = true;  // Record whether the chromosome pair meets the requirements. Currently, the chromosome number is consistent. If it is inconsistent, skip it.
+        bool aliBool = true;  // Record whether the start and end of the alignment are what you want
+        bool findChrBool = true;  // Record whether the chromosome number you are looking for is consistent with the current chromosome number
 
-        // 遍历文件时更改的值
-        // 染色体号
+        // Values changed while traversing the file
+        // chromosome
         string chr = "";
-        // alignment的方向、起始和终止
+        // The direction, start and end of alignment
         string aliRefStrand = "";
         uint32_t aliRefStart = 0;
         uint32_t aliRefEnd = 0;
         string aliQryStrand = "";
         uint32_t aliQryStart = 0;
         uint32_t aliQryEnd = 0;
-        // 文件流指针所在行的比对信息
+        // Comparison information of the line where the file stream pointer is located
         uint32_t refStart = 0;
         string refSeq = "";
         uint32_t refEnd = 0;
         uint32_t qryStart = 0;
         string qrySeq = "";
         uint32_t qryEnd = 0;
-        // 记录遍历到了 '_ref_seq' 以及对应的坐标
+        // The record traverses to '_ref_seq' and the corresponding coordinates
         uint32_t refLoci = 0;
-        int idxTmp = -1;  //Record the index at the end of the previous find_loci() function, and the next loop can directly skip those indexes
+        int idxTmp = -1;  // Record the index at the end of the previous find_loci() function, and the next loop can directly skip those indexes
         uint32_t qryLoci = 0;
 
         tuple<string, uint32_t, uint32_t> get_alignment_loc(
             string infoTmp
         );
-        int next_loci();  // 下一个比对段的坐标
+        int next_loci();  // The coordinates of the next comparison segment
     public:
         COORTRANS() {}
 
         explicit COORTRANS(string aliFileName) 
             : aliFileName_(aliFileName), GzChunkReaderClass_(std::make_unique<GzChunkReader>(aliFileName_, 1024 * 1024 * readBuffer)) {}
 
-        COORTRANS(const COORTRANS& other) = delete;  // 禁止拷贝构造函数
-        COORTRANS& operator=(const COORTRANS& other) = delete;  // 禁止拷贝赋值运算符
+        COORTRANS(const COORTRANS& other) = delete;  // Disable copy constructors
+        COORTRANS& operator=(const COORTRANS& other) = delete;  // Disable copy assignment operator
 
-        // 移动构造函数
+        // move constructor
         COORTRANS(COORTRANS&& other) noexcept : 
             aliFileName_(std::move(other.aliFileName_)), 
             sampleName(std::move(other.sampleName)),
@@ -269,11 +254,11 @@ namespace CALNAME
             idxTmp(other.idxTmp),
             qryLoci(other.qryLoci)
         {
-            // 将原对象状态设为无效
+            // Set the original object status to invalid
             other.GzChunkReaderClass_ = nullptr;
         }
 
-        // 移动赋值运算符
+        // move assignment operator
         COORTRANS& operator=(COORTRANS&& other) {
             if (this != &other) {
                 aliFileName_ = std::move(other.aliFileName_);
@@ -303,7 +288,7 @@ namespace CALNAME
             return *this;
         }
         
-        // 找坐标
+        // Find coordinates
         uint32_t find_loci(
             string chr_, 
             uint32_t refLoci_
@@ -311,7 +296,7 @@ namespace CALNAME
     };
 
 
-    // 获取共线性坐标
+    // Get collinear coordinates
     class SYRIOUT
     {
     private:
@@ -320,26 +305,26 @@ namespace CALNAME
 
         // open file
         unique_ptr<GzChunkReader> GzChunkReaderClass_;
-        bool endBool = false;  // 记录文件是否遍历完
+        bool endBool = false;  // Record whether the file has been traversed
 
-        // 记录共线性信息
+        // Record collinearity information
         string chr = "";
         uint32_t refStart = 0;
         uint32_t refEnd = 0;
         uint32_t qryStart = 0;
         uint32_t qryEnd = 0;
 
-        // 私有函数
-        int next_loci();  // 下一个比对段的坐标
+        // private function
+        int next_loci();  // The coordinates of the next comparison segment
     public:
         SYRIOUT() : endBool(true) {}
         explicit SYRIOUT(string fileName) : 
             fileName_(fileName), GzChunkReaderClass_(std::make_unique<GzChunkReader>(fileName_, 1024 * 1024 * readBuffer)), endBool(false) {}
 
-        SYRIOUT(const SYRIOUT& other) = delete;  // 禁止拷贝构造函数
-        SYRIOUT& operator=(const SYRIOUT& other) = delete;  // 禁止拷贝赋值运算符
+        SYRIOUT(const SYRIOUT& other) = delete;  // Disable copy constructors
+        SYRIOUT& operator=(const SYRIOUT& other) = delete;  // Disable copy assignment operator
 
-        // 移动构造函数
+        // move constructor
         SYRIOUT(SYRIOUT&& other) noexcept : 
             fileName_(std::move(other.fileName_)), 
             GzChunkReaderClass_(std::move(other.GzChunkReaderClass_)),
@@ -350,11 +335,11 @@ namespace CALNAME
             qryStart(other.qryStart),
             qryEnd(other.qryEnd) 
         {
-            // 将原对象状态设为无效
+            // Set the original object status to invalid
             other.GzChunkReaderClass_ = nullptr;
         }
 
-        // 移动赋值运算符
+        // move assignment operator
         SYRIOUT& operator=(SYRIOUT&& other) {
             if (this != &other) {
                 fileName_ = std::move(other.fileName_);
@@ -377,7 +362,7 @@ namespace CALNAME
 
 
     /**
-     * @brief 构建参考基因组索引
+     * @brief Build a reference genome index
      * 
      * @param referenceFileName -> refgenome
      * 
@@ -389,15 +374,14 @@ namespace CALNAME
 
 
     /* ************************************** calculate syntenic diversity ************************************** */
-
     /**
-     * @brief 计算
+     * @brief calculate
      * 
-     * @param sampleName               样品名
-     * @param refLenMap                参考基因组长度
-     * @param SynCoorTmp               共线性坐标
-     * @param sampleSampleSyriMap      syri.out 输出路径字典
-     * @param alignsMap                show-aligns 输出路径字典
+     * @param sampleName               sample name
+     * @param refLenMap                chromosome length
+     * @param SynCoorTmp               collinear coordinates
+     * @param sampleSampleSyriMap      syri.out output path dictionary
+     * @param alignsMap                show-aligns output path dictionary
      * 
      * @return CALSTRUCTURE
     **/
@@ -413,11 +397,11 @@ namespace CALNAME
     /* ********************************************* memory-saving mode ********************************************* */
 
     /**
-     * @brief 合并结果
+     * @brief merge result
      * 
-     * @param calOutStr                 某一样品的所有计算结果
-     * @param refLenMap                 染色体长度信息  map<string, length>
-     * @param chrLociSynNumMap          保存最终的结果map<chr, vector<synNum> >
+     * @param calOutStr                 All calculation results for a sample
+     * @param refLenMap                 Chromosome length information map<string, length>
+     * @param chrLociSynNumMap          Save the final result map<chr, vector<synNum> >
      * 
      * @return 0
     **/
@@ -429,14 +413,14 @@ namespace CALNAME
 
 
     /**
-     * @brief 计算
+     * @brief calculate
      * 
-     * @param refLenMap                参考基因组长度
-     * @param SynCoorTmp               共线性坐标
-     * @param sampleSampleSyriMap      syri.out 输出路径字典
-     * @param alignsMap                show-aligns 输出路径字典
-     * @param allSynNum                所有组合数量
-     * @param outputFileName           输出文件名
+     * @param refLenMap                chromosome length
+     * @param SynCoorTmp               collinear coordinates
+     * @param sampleSampleSyriMap      syri.out output path dictionary
+     * @param alignsMap                show-aligns output path dictionary
+     * @param allSynNum                All combination quantities
+     * @param outputFileName           Output file name
      * 
      * @return 0
     **/
@@ -450,15 +434,14 @@ namespace CALNAME
     );
 
 
-
     /* ********************************************* quick mode ********************************************* */
 
     /**
-     * @brief 合并结果
+     * @brief merge result
      * 
-     * @param chromosome                         染色体号
-     * @param chrLen                             染色体长度
-     * @param CALSTRUCTUREVec                    多线程输出结果
+     * @param chromosome                         chromosome
+     * @param chrLen                             chromosome length
+     * @param CALSTRUCTUREVec                    Multi-threaded output results
      * 
      * @return tuple<chromosome, synOutVecTmp>   tuple<chr, vector<synNum> >
     **/
@@ -470,14 +453,14 @@ namespace CALNAME
 
 
     /**
-     * @brief 计算
+     * @brief calculate
      * 
-     * @param refLenMap                参考基因组长度
-     * @param SynCoorTmp               共线性坐标
-     * @param sampleSampleSyriMap      syri.out 输出路径字典
-     * @param alignsMap                show-aligns 输出路径字典
-     * @param allSynNum                所有组合数量
-     * @param outputFileName           输出文件名
+     * @param refLenMap                chromosome length
+     * @param SynCoorTmp               collinear coordinates
+     * @param sampleSampleSyriMap      syri.out output path dictionary
+     * @param alignsMap                show-aligns output path dictionary
+     * @param allSynNum                All combination quantities
+     * @param outputFileName           Output file name
      * 
      * @return 0
     **/

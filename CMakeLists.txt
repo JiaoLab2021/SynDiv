@@ -31,7 +31,8 @@ target_compile_options(SynDiv_c PRIVATE -O3)
 # 为目标添加编译选项（包括 -O3、额外的警告和错误和CPU优化）
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     # target_compile_options(SynDiv_c PRIVATE -O3 -Wall -Wextra -Werror -pedantic-errors -march=native)
-    target_compile_options(SynDiv_c PRIVATE -O3 -Wall -Wextra -march=native)
+    # target_compile_options(SynDiv_c PRIVATE -O3 -Wall -Wextra -march=native)
+    target_compile_options(SynDiv_c PRIVATE -O3 -Wall -Wextra)
 endif()
 
 # 添加 include 目录

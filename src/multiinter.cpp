@@ -19,8 +19,7 @@ int main_multiinter(int argc, char* argv[])
     string outputFileName;
 
     //Parse command line options
-    if(argc <= 2)
-    {
+    if(argc <= 2) {
         help_multiinter(argv);
         exit(1);
     }
@@ -178,10 +177,17 @@ pair<string, map<string, vector<pair<uint32_t, uint32_t> > > > MULTIINTER::build
     vector<string> inputFileNameVecTmp = split(inputFileName, "/");  // Path splitting
     lineName = inputFileNameVecTmp.back();  // The last one
 
-    string prefix = ".syri.out";
+    string prefix;
+    if (lineName.find(".syri.out.gz") != string::npos) {
+        prefix = ".syri.out.gz";
+    } else if (lineName.find(".syri.out.GZ") != string::npos) {
+        prefix = ".syri.out.GZ";
+    } else {
+        prefix = ".syri.out";
+    }
+    
     auto iter1 = lineName.find(prefix);
-    if(iter1 != string::npos)
-    {
+    if(iter1 != string::npos) {
         lineName.replace(lineName.begin() + iter1, lineName.begin() + iter1 + prefix.size(), "");
     }
     
@@ -202,9 +208,8 @@ pair<string, map<string, vector<pair<uint32_t, uint32_t> > > > MULTIINTER::build
 
     while (GzChunkReaderClass.read_line(line))
     {
-        // Skip the blank line
-        if (line.empty() || line.find("SYNAL") == string::npos)
-        {
+        // Skip empty line
+        if (line.empty() || line.find("SYNAL") == string::npos) {
             continue;
         }
 
@@ -216,34 +221,23 @@ pair<string, map<string, vector<pair<uint32_t, uint32_t> > > > MULTIINTER::build
         uint32_t refStart = stoul(lineVec[1]);
         uint32_t refEnd = stoul(lineVec[2]);
 
-        if(preChromosome != chromosome && preChromosome.size() > 0)  // If you change chromosomes/Skip the first chromosome. Zero clearing
-        {
+        if(preChromosome != chromosome && preChromosome.size() > 0) {  // If you change chromosomes/Skip the first chromosome. Zero clearing
             chrSynVecMap[preChromosome].push_back(make_pair(PreRefStart, PreRefEnd));
             PreRefStart = refStart;
             PreRefEnd = refEnd;
-        }
-        else
-        {
-            if(PreRefStart == 0)  // First syn on chromosome 1
-            {
+        } else {
+            if(PreRefStart == 0) {  // First syn on chromosome 1
                 PreRefStart = refStart;
                 PreRefEnd = refEnd;
-            }
-            else if(refStart <= PreRefEnd)  // The previous one contains the interval
-            {
-                if(refEnd > PreRefEnd)  // Part contains
-                {
+            } else if(refStart <= PreRefEnd) {  // The previous one contains the interval
+                if(refEnd > PreRefEnd) {  // Part contains
                     PreRefStart = PreRefStart;
                     PreRefEnd = refEnd;
-                }
-                else  // Fully included
-                {
+                } else {  // Fully included
                     PreRefStart = PreRefStart;
                     PreRefEnd = PreRefEnd;
                 }
-            }
-            else  // No overlap
-            {
+            } else {  // No overlap
                 chrSynVecMap[preChromosome].push_back(make_pair(PreRefStart, PreRefEnd));
                 PreRefStart = refStart;
                 PreRefEnd = refEnd;
@@ -279,8 +273,7 @@ pair<map<string, map<uint32_t, vector<tuple<uint32_t, vector<string> > > > >, ma
     map<uint32_t, string> idxLineMap;  // Store the index and name of the line
 
     // Ergodic chromosome
-    for(auto it1 : chrLineSynVecMap)  // map<chromosome, map<lineName, vector<pair<refStart, refEnd>>>>
-    {
+    for(auto it1 : chrLineSynVecMap) {  // map<chromosome, map<lineName, vector<pair<refStart, refEnd>>>>
         // it1.first -> chromosome
         string chromosome = it1.first;
 
@@ -290,8 +283,7 @@ pair<map<string, map<uint32_t, vector<tuple<uint32_t, vector<string> > > > >, ma
         
         // All collinear lists and index information corresponding to chromosomes are extracted, and the first coordinate is assigned as the first of the syn list
         map<string, tuple<vector<pair<uint32_t, uint32_t> >, uint32_t, pair<uint32_t, uint32_t> > > LineSynVecIdxSynMap;  // map<lineName, tuple<vector<pair<refStart, refEnd> >, index, pair<refStart, refEnd> > >
-        for(auto it2 : it1.second)  // map<lineName, vector<pair<refStart, refEnd>>>
-        {
+        for(auto it2 : it1.second) {  // map<lineName, vector<pair<refStart, refEnd>>>
             // it2.first -> lineName
             // it2.second -> vector<pair<refStart, refEnd>>
 
@@ -308,8 +300,7 @@ pair<map<string, map<uint32_t, vector<tuple<uint32_t, vector<string> > > > >, ma
         uint32_t lineNum = idxLineMap.size();  // sample Indicates the number of samples to determine whether to terminate the loop
         uint32_t endNum = 0;  // Used to determine whether to terminate the while loop
 
-        for(auto it1 : LineSynVecIdxSynMap)  // map<lineName, tuple<vector<pair<refStart, refEnd> >, index, pair<refStart, refEnd> > >
-        {
+        for(auto it1 : LineSynVecIdxSynMap) {  // map<lineName, tuple<vector<pair<refStart, refEnd> >, index, pair<refStart, refEnd> > >
             // it1.first -> lineName
             string lineName = it1.first;
 
@@ -317,19 +308,16 @@ pair<map<string, map<uint32_t, vector<tuple<uint32_t, vector<string> > > > >, ma
             synVec.push_back(get<2>(it1.second));
 
             // If debugging code, print log
-            if (debugMultiinter)
-            {
+            if (debugMultiinter) {
                 cerr << chromosome << " " << lineName << ":" << get<2>(it1.second).first << "-" << get<2>(it1.second).second << endl;
             }
             
-            if(get<1>(it1.second) == get<0>(it1.second).size())  // Check whether the loop is complete
-            {
+            if(get<1>(it1.second) == get<0>(it1.second).size()) {  // Check whether the loop is complete
                 endNum++;
             }
         }
         
-        while(endNum < lineNum)  // End the loop when endNum == lineNum
-        {
+        while(endNum < lineNum) {  // End the loop when endNum == lineNum
             endNum = 0;  // Reset count
 
             // Find intersection
@@ -342,12 +330,10 @@ pair<map<string, map<uint32_t, vector<tuple<uint32_t, vector<string> > > > >, ma
             );
 
             // Print log if debugging code
-            if (debugMultiinter)
-            {
+            if (debugMultiinter) {
                 cerr << chromosome << " loc:" << outRefStart << "-" << outRefEnd << endl << chromosome << " outLine:";
 
-                for (auto outLine : outLineVec)
-                {
+                for (auto outLine : outLineVec) {
                     cerr << " " << outLine;
                 }
                 cerr << endl << endl;
@@ -361,8 +347,7 @@ pair<map<string, map<uint32_t, vector<tuple<uint32_t, vector<string> > > > >, ma
             vector<pair<uint32_t, uint32_t > >().swap(synVec);
 
             // Update collinear indexes and coordinates
-            for(auto it1 : LineSynVecIdxSynMap)  // map<lineName, tuple<vector<pair<refStart, refEnd> >, index, pair<refStart, refEnd> > >
-            {
+            for(auto it1 : LineSynVecIdxSynMap) {  // map<lineName, tuple<vector<pair<refStart, refEnd> >, index, pair<refStart, refEnd> > >
                 // it1.first -> lineName
                 string lineName = it1.first;
 
@@ -372,28 +357,20 @@ pair<map<string, map<uint32_t, vector<tuple<uint32_t, vector<string> > > > >, ma
                 pair<uint32_t, uint32_t> lineSycLocTmp = get<2>(it1.second);
 
                 // Update coordinate
-                if(lineSycLocTmp.first >= outRefEnd)  // If this collinear interval is not used, go straight to the next variety
-                {
+                if (lineSycLocTmp.first >= outRefEnd) {  // If this collinear interval is not used, go straight to the next variety
                     synVec.push_back(lineSycLocTmp);  // Update the coordinates and use the coordinates of the other one
-                }
-                else if(outRefEnd >= lineSycLocTmp.second)  // The collinear coordinates are used up
-                {
+                } else if (outRefEnd >= lineSycLocTmp.second) {  // The collinear coordinates are used up
                     lineSynIdx++;
-                    if(lineSynIdx >= lineSynVec.size())  // Check whether the loop is complete
-                    {
+                    if (lineSynIdx >= lineSynVec.size()) {  // Check whether the loop is complete
                         lineSycLocTmp = make_pair(0, 0);  // Total return to zero
                         endNum++;
-                    }
-                    else
-                    {
+                    } else {
                         lineSycLocTmp = lineSynVec[lineSynIdx];  // Collinearity points to the next coordinate
                     }
 
                     synVec.push_back(lineSycLocTmp);
                     LineSynVecIdxSynMap[lineName] = make_tuple(lineSynVec, lineSynIdx, lineSycLocTmp);  // Update the coordinates of the hash table
-                }
-                else  // Collinear coordinates are used half of the time
-                {
+                } else {  // Collinear coordinates are used half of the time
                     lineSycLocTmp.first = outRefEnd;
 
                     synVec.push_back(lineSycLocTmp);  // Update coordinate
@@ -401,8 +378,7 @@ pair<map<string, map<uint32_t, vector<tuple<uint32_t, vector<string> > > > >, ma
                 }
 
                 // If debugging code, print log
-                if (debugMultiinter)
-                {
+                if (debugMultiinter) {
                     cerr << chromosome << " " << lineName << ":" << lineSycLocTmp.first << "-" << lineSycLocTmp.second << " endNum:" << endNum << endl;
                 }
             }
@@ -423,8 +399,7 @@ pair<map<string, map<uint32_t, vector<tuple<uint32_t, vector<string> > > > >, ma
 tuple<uint32_t, uint32_t, vector<string> > MULTIINTER::loc_find(
     const vector<pair<uint32_t, uint32_t > > synVec, 
     const map<uint32_t, string> & idxLineMap
-)
-{
+) {
     // Collinear interval
     uint32_t outStart = UINT32_MAX;
     uint32_t outEnd = UINT32_MAX;
@@ -432,49 +407,39 @@ tuple<uint32_t, uint32_t, vector<string> > MULTIINTER::loc_find(
     vector<string> lineNameVec;  // Index of varieties corresponding to collinear intervals
     
 
-    for(auto it1 : synVec)  // Find the lowest collinear coordinates, which must be in the starting coordinates
-    {
+    for(auto it1 : synVec) {  // Find the lowest collinear coordinates, which must be in the starting coordinates
         if(it1.first == 0 && it1.second == 0) continue;  // If both are 0, the line loop is complete
 
         outStart = min(outStart, it1.first);  // The lowest value in all collinearity must be in the starting coordinates
     }
 
-    for(auto it1 : synVec)  // Find the collinearity second smallest coordinates
-    {
+    for(auto it1 : synVec) {  // Find the collinearity second smallest coordinates
         if(it1.first == 0 && it1.second == 0) continue;  // If both are 0, the line loop is complete
 
-        if (it1.first != outStart)  // It cannot be the minimum value
-        {
+        if (it1.first != outStart) {  // It cannot be the minimum value
             outEnd = min(outEnd, it1.first);
         }
         outEnd = min(outEnd, it1.second);
     }
 
-    if (outEnd == UINT32_MAX)  // Prevent situations where the end is the same as the start
-    {
+    if (outEnd == UINT32_MAX) {  // Prevent situations where the end is the same as the start
         outEnd = outStart;
     }
     
 
     uint32_t lineIdx = 0;
-    for(auto it1 : synVec)  // Find the minimum interval corresponding to the variety information
-    {
-        if(it1.first == 0 && it1.second == 0)  // If both are 0, the line loop is complete
-        {
+    for(auto it1 : synVec) {  // Find the minimum interval corresponding to the variety information
+        if(it1.first == 0 && it1.second == 0) {  // If both are 0, the line loop is complete
             lineIdx++;
             continue;
         }
 
-        if(it1.first >= outStart && it1.first < outEnd)
-        {
+        if(it1.first >= outStart && it1.first < outEnd) {
             string lineName;
             auto iter = idxLineMap.find(lineIdx);
-            if(iter != idxLineMap.end())
-            {
+            if(iter != idxLineMap.end()) {
                 lineName = iter->second;
-            }
-            else
-            {
+            } else {
                 cerr << "[" << __func__ << "::" << getTime() << "] "
                     << "keyError: " << lineIdx << " not in idxLineMap." << endl;
                 exit(1);
@@ -511,18 +476,14 @@ int MULTIINTER::save_result(
 
     // Add lineName to the list
     vector<string> lineNameVec;
-    for(auto it : idxLineMap)
-    {
+    for(auto it : idxLineMap) {
         lineNameVec.push_back(it.second); 
     }
 
     // save result
-    for(auto it1 : outChrStartEndLineVecMap)  // map<chr, map<refStart, vector<tuple<refEnd, vector<lineName> > > > >
-    {
-        for(auto it2 : it1.second)  // map<refStart, vector<tuple<refEnd, vector<lineName> > > >
-        {
-            for(auto it3 : it2.second)  // vector<tuple<refEnd, vector<lineName> > >
-            {
+    for(auto it1 : outChrStartEndLineVecMap) {  // map<chr, map<refStart, vector<tuple<refEnd, vector<lineName> > > > >
+        for(auto it2 : it1.second) {  // map<refStart, vector<tuple<refEnd, vector<lineName> > > >
+            for(auto it3 : it2.second) {  // vector<tuple<refEnd, vector<lineName> > >
                 outStream << it1.first << "\t" << to_string(it2.first) << "\t" + to_string(get<0>(it3)) << "\t" << to_string(get<1>(it3).size()) << "\t";
 
                 // Collinearity contains index of breed names
@@ -531,36 +492,29 @@ int MULTIINTER::save_result(
                 // Output (Column 5 and beyond)
                 vector<string> lineNameVecTmp;
                 vector<int> boolVecTmp;
-                for (size_t i = 0; i < lineNameVec.size(); i++)  // vector<lineName>
-                {
-                    if(lineNameVec[i] == get<1>(it3)[idxTmp])  // Contains the corresponding variety
-                    {
+                for (size_t i = 0; i < lineNameVec.size(); i++) {  // vector<lineName>
+                    if(lineNameVec[i] == get<1>(it3)[idxTmp]) {  // Contains the corresponding variety
                         lineNameVecTmp.push_back(lineNameVec[i]);
                         boolVecTmp.push_back(1);
                         idxTmp++;
-                    }
-                    else
-                    {
+                    } else {
                         boolVecTmp.push_back(0);
                     }
 
                     // If you go to the end of the vector, jump out of the for loop
-                    if (idxTmp == get<1>(it3).size())
-                    {
+                    if (idxTmp == get<1>(it3).size()) {
                         break;
                     }  
                 }
 
                 // If the result is empty, skip the site
-                if (lineNameVecTmp.size() == 0)
-                {
+                if (lineNameVecTmp.size() == 0) {
                     continue;
                 }
                 
                 outStream << join(lineNameVecTmp, ",") << "\t" + join(boolVecTmp, "\t") << "\n";
 
-                if (outStream.tellp() >= CACHE_SIZE)  // The cache size is 10mb
-                {
+                if (outStream.tellp() >= CACHE_SIZE) {  // The cache size is 10mb
                     string outTxt = outStream.str();
                     SAVEClass.save(outTxt);
                     // Clearing a stringstream
@@ -571,8 +525,7 @@ int MULTIINTER::save_result(
         }
     }
 
-    if (outStream.tellp() > 0)  // Write for the last time
-    {
+    if (outStream.tellp() > 0) {  // Write for the last time
         string outTxt = outStream.str();
         SAVEClass.save(outTxt);
         // Clearing a stringstream

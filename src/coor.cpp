@@ -436,10 +436,8 @@ uint32_t COOR::syn_all_loc_push(
     }
 
     // debug
-    if (qrySynStartTmp != 0 || qrySynEndTmp != 0)
-    {
-        if (debugCoor)
-        {
+    if (qrySynStartTmp != 0 || qrySynEndTmp != 0) {
+        if (debugCoor) {
             cerr << "ref:" << refChr << "-" << refStart << "-" << refEnd << "\t" << 
                 "qry:" << qryStart << "-" << qryEnd << "\t" << 
                 "refSyn:" << synStart << "-" << synEnd << "\t" <<
@@ -480,19 +478,15 @@ int COOR::renew_syn_loc(
 )
 {
     map<string, vector<tuple<uint32_t, uint32_t, vector<string> > > >::const_iterator findIter = synLocSampleVecMap.find(synChr);  //  Look for chromosomes in a collinear map
-    if (findIter != synLocSampleVecMap.end())  // Got it.
-    {
+    if (findIter != synLocSampleVecMap.end()) {  // Got it.
         auto& synLocSampleVec = findIter->second;  // vector<tuple<uint32_t, uint32_t, vector<string> > >
 
-        if (synIdx < synLocSampleVec.size())  // Prevention of transgression
-        {
+        if (synIdx < synLocSampleVec.size()) {  // Prevention of transgression
             // If the collinearity does not have a corresponding sample name, proceed to the next coordinate
-            while (find(get<2>(synLocSampleVec[synIdx]).begin(), get<2>(synLocSampleVec[synIdx]).end(), sampleName) == get<2>(synLocSampleVec[synIdx]).end())
-            {
+            while (find(get<2>(synLocSampleVec[synIdx]).begin(), get<2>(synLocSampleVec[synIdx]).end(), sampleName) == get<2>(synLocSampleVec[synIdx]).end()) {
                 synIdx++;  // Update coordinate
                 // If you cross the line, zero the coordinates and exit the function
-                if (synIdx >= synLocSampleVec.size())
-                {
+                if (synIdx >= synLocSampleVec.size()) {
                     synIdx = 0;
                     synStart = 0;
                     synEnd = 0;
@@ -510,9 +504,7 @@ int COOR::renew_syn_loc(
             qrySynStart = 0;
             qrySynEnd = 0;
             whileBool = true;
-        }
-        else
-        {
+        } else {
             synIdx = 0;
             synStart = 0;
             synEnd = 0;
@@ -543,11 +535,9 @@ map<string, vector<tuple<uint32_t, uint32_t, vector<string> > > > COOR::build_sy
 
     // read line
     string line;
-    while (GzChunkReaderClass.read_line(line))
-    {
-        // Skip blank line
-        if (line.empty())
-        {
+    while (GzChunkReaderClass.read_line(line)) {
+        // Skip empty line
+        if (line.empty()) {
             continue;
         }
 
@@ -584,11 +574,19 @@ COOR::synAllStructure COOR::get_syn_coor(
     synAllStructure chrStartSynQryLocMap;
 
     // If no sample name is submitted, extract according to the file
-    if (sampleName.empty())
-    {
+    if (sampleName.empty()) {
         vector<string> inputFileNameVecTmp = split(inputFileName, "/");  // Path splitting
         sampleName = inputFileNameVecTmp.back();
-        std::regex reg1(".aligns");  // Replace
+
+        std::regex reg1;
+        if (sampleName.substr(sampleName.length() - 3) == ".gz") {
+            reg1 = std::regex(".aligns.gz");
+        } else if (sampleName.substr(sampleName.length() - 3) == ".GZ") {
+            reg1 = std::regex(".aligns.GZ");
+        } else {
+            reg1 = std::regex(".aligns");
+        }
+
         sampleName = regex_replace(sampleName, reg1, "");  // 'An-1.aligns' Delete '.aligns'
     }
 
@@ -596,10 +594,8 @@ COOR::synAllStructure COOR::get_syn_coor(
     chrStartSynQryLocMap.sampleName = sampleName;
 
     // First initialize the sylLocVecOutMap
-    for (const auto& [chromosome, locationSampleVec] : synLocSampleVecMap)  // map<chr, vector<tuple<refStart, refEnd, vector<sample> > > >
-    {
-        for (const auto& [synStart, synEnd, sampleVec] : locationSampleVec)  // vector<tuple<refStart, refEnd, vector<sample> > >
-        {
+    for (const auto& [chromosome, locationSampleVec] : synLocSampleVecMap) {  // map<chr, vector<tuple<refStart, refEnd, vector<sample> > > >
+        for (const auto& [synStart, synEnd, sampleVec] : locationSampleVec) {  // vector<tuple<refStart, refEnd, vector<sample> > >
             chrStartSynQryLocMap.chrStartSynQryLocMap[chromosome].emplace(synStart, make_tuple(0, 0));
         }
     }
@@ -649,26 +645,22 @@ COOR::synAllStructure COOR::get_syn_coor(
     // read line
     string line;
     
-    while (GzChunkReaderClass.read_line(line))
-    {
-        // Skip blank line
-        if (line.empty())
-        {
+    while (GzChunkReaderClass.read_line(line)) {
+        // Skip empty line
+        if (line.empty()) {
             continue;
         }
         
-        if (line == "\n" || 
+        if (
+            line == "\n" || 
             line[0] == ' ' || 
             line[0] == '=' || 
-            line.find("--   END alignment ") != string::npos)  // ' /=/\n/END' alignment is skipped
-        {
+            line.find("--   END alignment ") != string::npos
+        ) {  // ' /=/\n/END' alignment is skipped
             continue;
-        }
-        else  // Get the soon-Aligns coordinates
-        {
-            if (line.find("-- Alignments between") != string::npos)  // New comparison chromosome    -- Alignments between chr1 and chr1
-            {
-                // 拆分字符串
+        } else {  // Get the soon-Aligns coordinates
+            if (line.find("-- Alignments between") != string::npos) {  // New comparison chromosome    -- Alignments between chr1 and chr1
+                // split
                 std::istringstream iss(line);
                 vector<string> lineVec(std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>());
 
@@ -700,9 +692,7 @@ COOR::synAllStructure COOR::get_syn_coor(
                 line.clear();
                 string().swap(line);
                 continue;
-            }
-            else if (line.find("-- BEGIN alignment ") != string::npos)  // New alignment coordinates    -- BEGIN alignment [ +1 1078 - 68996 | +1 1 - 67961 ]
-            {
+            } else if (line.find("-- BEGIN alignment ") != string::npos) {  // New alignment coordinates    -- BEGIN alignment [ +1 1078 - 68996 | +1 1 - 67961 ]
                 line = strip(line.erase(0, 21), '\n');  // Delete '-- BEGIN alignment [' contains 21 characters
                 line = line.erase(line.size()-2, 2);  // Remove ']' a total of 2 characters, position in the last two
 
@@ -728,26 +718,20 @@ COOR::synAllStructure COOR::get_syn_coor(
                 forIdx = -1;
 
                 // Skip this read before the coordinates are collinear.
-                if (aliRefEndTmp < synStart)
-                {
+                if (aliRefEndTmp < synStart) {
                     aliBool = false;
                 }
                 // Determines whether to skip the reverse complementary sequence and skip this read.
-                else if (!findRevBool && (AliRefStrandTmp == "-1" || AliQryStrandTmp == "-1"))
-                {
+                else if (!findRevBool && (AliRefStrandTmp == "-1" || AliQryStrandTmp == "-1")) {
                     cerr << "[" << __func__ << "::" << getTime() << "] "
                         << "Warning: Reverse alignment skipped -> " << synChr << " " << line << endl;
                     aliBool = false;
-                }
-                // ref and qry have different chromosomes, skip this read.
-                else if (refChr != qryChr)
-                {
+                } else if (refChr != qryChr) {
+                    // ref and qry have different chromosomes, skip this read.
                     cerr << "[" << __func__ << "::" << getTime() << "] "
                         << "Warning: Skipped alignment due to chromosomal mismatch -> " << refChr << " != " << qryChr << endl;
                     aliBool = false;
-                }
-                else
-                {
+                } else {
                     // Reset coordinate
                     AliRefStrand = AliRefStrandTmp;
                     aliRefStart = aliRefStartTmp;
@@ -761,16 +745,13 @@ COOR::synAllStructure COOR::get_syn_coor(
                     aliRowStartNum = ((static_cast<int32_t>(synStart) - static_cast<int32_t>(aliRefStart))/49)*2-10;
                     aliRowEndNum = ((static_cast<int32_t>(synEnd) - static_cast<int32_t>(aliRefStart))/49)*2-10;
                 }
-            }
-            // Only loops that start with a number and contain syn
-            // If the map is done, again skip it, and when it's done it means 'synEnd==0'.
-            else if (isdigit(line[0]) != 0 && aliBool && synEnd > 0)   
-            {
+            } else if (isdigit(line[0]) != 0 && aliBool && synEnd > 0) {
+                // Only loops that start with a number and contain syn
+                // If the map is done, again skip it, and when it's done it means 'synEnd==0'.
                 forIdx++;  // The number of rows is even ref odd qry
 
                 // If the line is smaller than the threshold, skip
-                if (forIdx < aliRowStartNum)
-                {
+                if (forIdx < aliRowStartNum) {
                     continue;
                 }
 
@@ -778,47 +759,37 @@ COOR::synAllStructure COOR::get_syn_coor(
                 std::istringstream iss(line);
                 vector<string> lineVec(std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>());
 
-                if (( forIdx & 1 ) == 0)  // even
-                {
+                if (( forIdx & 1 ) == 0) {  // even
                     // Reset coordinates (this)
                     refSeq = lineVec[1];
                     // Temporary ref sequence
                     string refSeqTmp = refSeq;
                     //Remove '.' to calculate length
                     refSeqTmp.erase(remove(refSeqTmp.begin(), refSeqTmp.end(), '.'), refSeqTmp.end());
-                    if (AliRefStrand == "+1")  // Forward alignment
-                    {
+                    if (AliRefStrand == "+1") {  // Forward alignment
                         refStart = stoul(lineVec[0]);
                         refEnd = refStart + refSeqTmp.size() - 1;
-                    }
-                    else  // Reverse alignment
-                    {
+                    } else {  // Reverse alignment
                         refEnd = stoul(lineVec[0]);
                         refStart = refEnd - refSeqTmp.size() + 1;
                     }
-                }
-                else  // odd
-                {
+                } else {  // odd
                     // Reset coordinates (this)
                     qrySeq = lineVec[1];
                     // Temporary ref sequence
                     string qrySeqTmp = qrySeq;
                     // Remove '.' to calculate length
                     qrySeqTmp.erase(remove(qrySeqTmp.begin(), qrySeqTmp.end(), '.'), qrySeqTmp.end());
-                    if (AliQryStrand == "+1")  // Forward alignment
-                    {
+                    if (AliQryStrand == "+1") {  // Forward alignment
                         qryStart = stoul(lineVec[0]);
                         qryEnd = qryStart + qrySeqTmp.size() - 1;
-                    }
-                    else  // Reverse alignment
-                    {
+                    } else {  // Reverse alignment
                         qryEnd = stoul(lineVec[0]);
                         qryStart = qryEnd - qrySeqTmp.size() + 1;
                     }
                     
                     // If the colinear interval is before that interval, update the colinear coordinates, but to prevent an endless loop, so when 'synEnd==0' means that the dictionary has been traversed, skip
-                    while (synEnd > 0 && synEnd < refStart)
-                    {
+                    while (synEnd > 0 && synEnd < refStart) {
                         renew_syn_loc(
                             sampleName, 
                             synLocSampleVecMap, 
@@ -836,8 +807,7 @@ COOR::synAllStructure COOR::get_syn_coor(
                         aliRowEndNum = ((static_cast<int32_t>(synEnd) - static_cast<int32_t>(aliRefStart))/49)*2-10;
 
                         // Check whether syn is included in the comparison. Skip the lines that do not contain SYN
-                        if (aliRefEnd < synStart)  // Skip this read before the coordinates are collinear
-                        {
+                        if (aliRefEnd < synStart) {  // Skip this read before the coordinates are collinear
                             aliBool = false;
                         }
                     }
@@ -846,10 +816,11 @@ COOR::synAllStructure COOR::get_syn_coor(
                     bool whileBool = true;
 
                     // Find the coordinates and push them into the diagram
-                    while (((refStart <= synStart && synStart <= refEnd) || 
-                            (refStart <= synEnd && synEnd <= refEnd)) &&
-                            whileBool)
-                    {
+                    while (
+                        ((refStart <= synStart && synStart <= refEnd) || 
+                        (refStart <= synEnd && synEnd <= refEnd)) &&
+                        whileBool
+                    ) {
                         uint32_t qrySynStartTmp = find_qry_syn(
                             synStart, 
                             refStart, 
@@ -892,10 +863,11 @@ COOR::synAllStructure COOR::get_syn_coor(
                         );
 
                         // If both coordinates are found, or if synEnd has been reached, update the syn coordinates
-                        if ((qrySynStart > 0 && qrySynEnd > 0) || 
+                        if (
+                            (qrySynStart > 0 && qrySynEnd > 0) || 
                             (refStart <= synEnd && synEnd <= refEnd) || 
-                            synEnd < refStart)
-                        {
+                            synEnd < refStart
+                        ) {
                             renew_syn_loc(
                                 sampleName, 
                                 synLocSampleVecMap, 
@@ -908,8 +880,7 @@ COOR::synAllStructure COOR::get_syn_coor(
                                 whileBool
                             );
                             // Check whether syn is included in the comparison. Skip the lines that do not contain SYN
-                            if (aliRefEnd < synStart)  // 坐标在共线性之前，跳过该条read
-                            {
+                            if (aliRefEnd < synStart) {  // Before the coordinates are collinear, skip this read.
                                 aliBool = false;
                             }
                             // Calculate the approximate line where syn is located,
@@ -939,8 +910,7 @@ int COOR::save_result(
     const map<string, vector<tuple<uint32_t, uint32_t, vector<string> > > >& synLocSampleVecMap,
     const map<string, unordered_map<string, unordered_map<uint32_t, tuple<uint32_t, uint32_t> > > >& sampleChrStartSynQryLocMap,
     const string& outputFileName
-)
-{
+) {
     SAVE SAVEClass(outputFileName);
 
     stringstream outStream; // Use stringstream instead of string concatenation
@@ -948,20 +918,16 @@ int COOR::save_result(
     outStream.str().reserve(CACHE_SIZE);
 
     // save result
-    for (const auto& [chromosome, locationSampleVec] : synLocSampleVecMap)  // map<chr, vector<tuple<refStart, refEnd, vector<sample> > > >
-    {
+    for (const auto& [chromosome, locationSampleVec] : synLocSampleVecMap) {  // map<chr, vector<tuple<refStart, refEnd, vector<sample> > > >
         // Record the last collinear coordinate to prevent collinearity between intervals
         uint64_t preSynEnd = 0;
 
-        for (const auto& [synStart, synEnd, sampleVec] : locationSampleVec)  // vector<tuple<refStart, refEnd, vector<sample> > >
-        {
+        for (const auto& [synStart, synEnd, sampleVec] : locationSampleVec) {  // vector<tuple<refStart, refEnd, vector<sample> > >
             // Otherwise, check whether there is an interval
-            if(preSynEnd != 0 && synStart > preSynEnd + 1)
-            {
+            if(preSynEnd != 0 && synStart > preSynEnd + 1) {
                 outStream << chromosome << '\t' << preSynEnd + 1 << '\t' << synStart - 1;
                 
-                for (const auto& it3 : sampleChrStartSynQryLocMap)  // map<sampleName, map<chr, map<synStart, tuple<qrySynStart, qrySynEnd> > > >
-                {
+                for (const auto& it3 : sampleChrStartSynQryLocMap) {  // map<sampleName, map<chr, map<synStart, tuple<qrySynStart, qrySynEnd> > > >
                     outStream << '\t' << it3.first << '\t' << 0 << '\t' << 0;
                 }
                 outStream << '\n';
@@ -971,15 +937,13 @@ int COOR::save_result(
 
             // Information about the current node
             outStream << chromosome << '\t' << synStart << '\t' << synEnd;
-            for (const auto& it3 : sampleChrStartSynQryLocMap)  // map<sampleName, map<chr, map<synStart, tuple<qrySynStart, qrySynEnd> > > >
-            {
+            for (const auto& it3 : sampleChrStartSynQryLocMap) {  // map<sampleName, map<chr, map<synStart, tuple<qrySynStart, qrySynEnd> > > >
                 const auto& chrStartSynQryLoc = it3.second.at(chromosome).at(synStart);
                 outStream << '\t' << it3.first << '\t' << get<0>(chrStartSynQryLoc) << '\t' << get<1>(chrStartSynQryLoc);
             }
             outStream << '\n';
 
-            if (outStream.tellp() >= CACHE_SIZE)  // The cache size is 10mb
-            {
+            if (outStream.tellp() >= CACHE_SIZE) {  // The cache size is 10mb
                 string outTxt = outStream.str();
                 SAVEClass.save(outTxt);
                 // Clearing a stringstream
@@ -989,8 +953,7 @@ int COOR::save_result(
         }
     }
 
-    if (outStream.tellp() > 0)  // Write for the last time
-    {
+    if (outStream.tellp() > 0) {  // Write for the last time
         string outTxt = outStream.str();
         SAVEClass.save(outTxt);
         // Clearing a stringstream
