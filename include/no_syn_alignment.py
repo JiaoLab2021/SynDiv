@@ -4,12 +4,16 @@
 
 
 import os
+import sys
 import shutil
 import subprocess
 import multiprocessing
 import logging
 import pandas as pd
-import syri_syn
+
+# include the path of the file_open.py
+sys.path.append(os.path.dirname(os.path.realpath(__file__)) + os.sep)
+import syri_syn, run_cmd
 
 
 # Define the log format
@@ -21,9 +25,7 @@ logger.addHandler(handler)
 
 
 # Create a directory
-def makedir(
-    path_dir: str
-):
+def makedir(path_dir: str):
     """
     :param path_dir: The folder path to be created
     :return: 0
@@ -31,47 +33,17 @@ def makedir(
     if os.path.isdir(path_dir):
         shutil.rmtree(path_dir)
         os.makedirs(path_dir)
-        log = '[makedir] \'{}\' already exists, clear and recreate.'.format(path_dir)
+        log = '\'{}\' already exists, clear and recreate.'.format(path_dir)
         logger.error(log)
     else:
         os.makedirs(path_dir)
-
-
-# Run multithreaded tasks
-def run_command(command, envPath):
-    # submit task
-    proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=envPath)
-
-    # get exit status
-    exit_state = proc.wait()
-
-    stdout, stderr = proc.communicate()
-    stdout = stdout.decode()
-    stderr = stderr.decode()
-
-    # standard output and error output
-    if exit_state != 0 or "FileNotFoundError" in str(stderr) or \
-            "command not found" in str(stderr) or \
-            "error" in str(stderr) or \
-            "Error" in str(stderr):
-        logger.error(f"Error: Exit status is {exit_state}")
-        logger.error(f"Error: CMD -> {command}")
-        logger.error(f"Error: stderr -> {stderr}")
-
-    return exit_state, stdout, stderr
 
 
 class AlignmentLociClass:
     """
     Non-collinear coordinates that need to be compared
     """
-    def __init__(
-            self,
-            ali_loci_filename: str, 
-            config_file_map: dict, 
-            args, 
-            code_path
-    ):
+    def __init__(self, ali_loci_filename: str, config_file_map: dict, args, code_path):
         """
         Constructor
         :param ali_loci_filename: Coordinates to be compared, the output of SynDic_c no_syn
@@ -98,9 +70,7 @@ class AlignmentLociClass:
         self._sample1_sample2_synpd = {}  # map<sample1, map<sample2, pd.DataFrame()> >
 
 
-    def _index(
-        self
-    ):
+    def _index(self):
         """
         Build coordinate index
         """
@@ -155,16 +125,12 @@ class AlignmentLociClass:
         self._long_ali_loci_dict = {k: v for k, v in ali_loci_dict.items() if len(v) > threshold}
         self._short_ali_loci_dict = {k: v for k, v in ali_loci_dict.items() if len(v) <= threshold}
         # print quantity
-        logger.error(f'Number of tasks running in parallel by row: {len(self._short_ali_loci_dict)}')
-        logger.error(f'Number of tasks running in parallel by column: {len(self._long_ali_loci_dict)}')
+        logger.error(f'Number of tasks running in parallel (row-wise): {len(self._short_ali_loci_dict)}')
+        logger.error(f'Number of tasks running in parallel (column-wise): {len(self._long_ali_loci_dict)}')
 
 
 
-    def _alignment_line(
-        self, 
-        thread_indice
-        
-    ):
+    def _alignment_line(self, thread_indice):
         """
         A multi-threaded function for extracting sequences and aligning them
         : param key_value   reference genome coordinates_map<sample, vector<chr:start-end> >   map<sample, vector<chr:start-end> >
@@ -360,12 +326,7 @@ class AlignmentLociClass:
         return loci_sample1_sample2_synpd_list
     
 
-    def _alignment_column(
-        self, 
-        key1, 
-        value1, 
-        pool
-    ):
+    def _alignment_column(self, key1, value1, pool):
         """
         A multi-threaded function for extracting sequences and aligning them
         : param key1    reference genome coordinates, map<chr+"_"+start, map<sample, vector<chr:start-end> > >
@@ -491,10 +452,7 @@ class AlignmentLociClass:
         return key1, sample1_sample2_synpd_tmp
     
 
-def samtools_index(
-    path,
-    config_file_map
-):
+def samtools_index(path, config_file_map):
     """
     :description:              build the genome index
     :param path:               environment variable
@@ -522,20 +480,12 @@ def samtools_index(
             # build the index
             cmd = f"samtools faidx {genomeFile}"
             # submit task
-            run_command(cmd, path)
+            run_cmd.run(cmd, path)
 
     return 0
 
 
-def samtools(
-    path, 
-    ali_loci_filename,
-    key1, 
-    key2, 
-    value2, 
-    config_file_map, 
-    output_file_name
-):
+def samtools(path, ali_loci_filename, key1, key2, value2, config_file_map, output_file_name):
     """
     :description:                 extract sequence
     :param path:                  environment variable
@@ -583,21 +533,12 @@ def samtools(
         file_name_loc_map_tmp[key2][int(lociList[0])] = int(lociList[1])
 
         # submit task
-        run_command(cmd, path)
+        run_cmd.run(cmd, path)
 
     return chromosome, file_name_loc_map_tmp
 
 
-def minimap2_syn(
-    args, 
-    path, 
-    filename1, 
-    filename2, 
-    alignment_file_name, 
-    ref_start_tmp_list, 
-    ref_end_tmp_list, 
-    ref_len_tmp_list
-):
+def minimap2_syn(args, path, filename1, filename2, alignment_file_name, ref_start_tmp_list, ref_end_tmp_list, ref_len_tmp_list):
     """
     :description:                 Align and find collinear coordinates
     :param args:                  Input parameter information
@@ -612,7 +553,7 @@ def minimap2_syn(
     # minimap2
     cmd = f'minimap2 -ax asm5 --eqx {filename1} {filename2} -o {alignment_file_name}'
     # submit task
-    run_command(cmd, path)
+    run_cmd.run(cmd, path)
 
     # If the file does not exist, return directly
     if not os.path.exists(alignment_file_name):
@@ -624,13 +565,7 @@ def minimap2_syn(
     return synpd
 
 
-def syri(
-    args, 
-    ref_start_tmp_list, 
-    ref_end_tmp_list, 
-    ref_len_tmp_list, 
-    alignment_file_name
-):
+def syri(args, ref_start_tmp_list, ref_end_tmp_list, ref_len_tmp_list, alignment_file_name):
     """
     :description:                              Parsing minimap2 results, looking for collinear coordinates
     :param args:                               Input parameter information
@@ -727,16 +662,16 @@ def syri(
                     synDataTmp1.iloc[0, 0] = thisLenTmp + 1
         except KeyError as e:  # handle exception
             if args.debug:
-                logger.error(f"KeyError occurred: {e}")
+                logger.error(f"A KeyError has occurred: {e}")
             continue
         except IndexError as e:  # handle exception
             if args.debug:
-                logger.error(f"IndexError occurred: {e}")
-                logger.error(f'Error ref_start_tmp_list: {ref_start_tmp_list}')
-                logger.error(f"Error ref_end_tmp_list: {ref_end_tmp_list}")
-                logger.error(f"Error ref_len_tmp_list: {ref_len_tmp_list}")
-                logger.error(f"Error index:{index}", index)
-                logger.error(f"Error alignment_file_name: {alignment_file_name}")
+                logger.error(f"An IndexError occurred: {e}")
+                logger.error(f'Problematic ref_start_tmp_list: {ref_start_tmp_list}')
+                logger.error(f"Problematic ref_end_tmp_list: {ref_end_tmp_list}")
+                logger.error(f"Problematic ref_len_tmp_list: {ref_len_tmp_list}")
+                logger.error(f"Problematic index: {index}")
+                logger.error(f"Problematic alignment_file_name: {alignment_file_name}")
             continue
     
     return synpd
@@ -747,7 +682,7 @@ def save_result(sample1, sample2, synpd):
     """
     :param sample1:     the name of sample1
     :param sample2:     the name of sample2
-    :param synpd:      共线性的坐标   pd.DataFrame()
+    :param synpd:       collinear coordinates   pd.DataFrame()
     :
     :return: 0
     """
@@ -837,9 +772,6 @@ def main(args, config_file_map, no_synPath, workDir, code_path):
     """
     # mkdir
     makedir(workDir)
-    workDir = workDir + os.sep
-
-    # cd
     os.chdir(workDir)
 
     
@@ -848,7 +780,7 @@ def main(args, config_file_map, no_synPath, workDir, code_path):
 
 
     # #################################### build index #################################### #
-    logger.error(f'Building index.')
+    logger.error(f'Initiating index construction...')
 
     ali_loci_class._index()
 
@@ -856,7 +788,8 @@ def main(args, config_file_map, no_synPath, workDir, code_path):
 
 
     # #################################### Alignment #################################### #
-    logger.error(f'Alignment started.')
+    logger.error(f'Starting alignment...')
+
 
     # Create a process pool, specify the maximum number of processes as args.jobs
     pool = multiprocessing.Pool(processes=args.jobs)
@@ -912,7 +845,7 @@ def main(args, config_file_map, no_synPath, workDir, code_path):
 
 
     # #################################### Output profile information #################################### #
-    no_syn_alignmentPath = os.path.abspath(f"{args.prefix}no_syn_alignment.out")
+    no_syn_alignmentPath = os.path.abspath(f"{args.prefix}.no_syn_alignment.out")
     with open(no_syn_alignmentPath, 'w', encoding="utf-8") as f:
         for synOutFilePath in synOutFilePathList:
             fileNameList = os.path.basename(synOutFilePath).replace(".syn.out", "").split("_")

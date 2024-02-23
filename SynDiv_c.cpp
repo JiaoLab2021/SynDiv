@@ -17,9 +17,9 @@
 using namespace std;
 
 // define data
-#define PROGRAM_DATA "2023/12/18"
+#define PROGRAM_DATA "2024/02/23"
 // define version
-#define PROGRAM_VERSION "1.1.0"
+#define PROGRAM_VERSION "1.1.1"
 // define author
 #define PROGRAM_AUTHOR "Zezhen Du"
 // define E-mail
@@ -98,7 +98,7 @@ void help(char** argv)
        << "   cal            compute syntenic diversity" << endl
        << "   window         calculate the average score within window" << endl
        << endl
-       << "  -h, --help      print this help document" << endl
+       << "   -h, --help     print this help document" << endl
        << endl
        << "If you encounter any issues related to the code, please don't hesitate to contact us via email at " << PROGRAM_E_MAIL << "." << endl;
 }
