@@ -1,6 +1,6 @@
 # SynDiv
 
-[![GitHub Downloads](https://img.shields.io/github/downloads/JiaoLab2021/SynDiv/total.svg?style=social&logo=github&label=Download)](https://github.com/JiaoLab2021/SynDiv/releases)
+<!-- [![GitHub Downloads](https://img.shields.io/github/downloads/JiaoLab2021/SynDiv/total.svg?style=social&logo=github&label=Download)](https://github.com/JiaoLab2021/SynDiv/releases) -->
 [![BioConda Install](https://img.shields.io/conda/dn/duzezhen/syndiv.svg?style=flag&label=BioConda%20install)](https://anaconda.org/DuZeZhen/syndiv)
 [![GitHub last commit](https://img.shields.io/github/last-commit/JiaoLab2021/syndiv.svg?label=Last%20commit&logo=github&style=flat)](https://github.com/JiaoLab2021/SynDiv/releases)
 [![Build Status](https://github.com/JiaoLab2021/SynDiv/actions/workflows/ci.yaml/badge.svg)](https://github.com/JiaoLab2021/SynDiv/actions)
@@ -79,20 +79,24 @@ nohup /usr/bin/time -v SynDiv -r genome/refgenome.fa -c configuration.txt &>log.
 
 **Input Files**
 
-To quickly get started, you will need two input files: aligns files and syri.out files. Once you have obtained these files, make sure to prepare the Reference genome and Configuration file.
+To quickly get started, you will need two input files: `aligns` files and `syri.out` files. Once you have obtained these files, make sure to prepare the Reference genome and configuration file.
 
 * Reference Genome
-* Configuration file
+* configuration file
+
+Please note that the chromosome names in the query genome must match those in the reference genome.
 
 ```shell
-# Configuration file
-sample1 sample1_genome_path sample1_aligns_path sample1_syri_out_path
-sample2 sample2_genome_path sample2_aligns_path sample2_syri_out_path
+# configuration file
+sample1 sample1.fa sample1.aligns sample1.syri.out
+sample2 sample2.fa sample2.aligns sample2.syri.out
 ...
-sampleN sampleN_genome_path sampleN_aligns_path sampleN_syri_out_path
+sampleN sampleN.fa sampleN.aligns sampleN.syri.out
 ```
 
-Please note that the Configuration file must strictly adhere to the specified format, which includes listing each sample and its corresponding file. File lines should be separated by tabs.
+[configuration_article]: https://github.com/JiaoLab2021/SynDiv/wiki/Configuration-file
+
+File should be separated by tabs. The code examples for generating `aligns` and `syri.out` files can be found on the [wiki][configuration_article].
 
 **Running**
 
@@ -105,11 +109,11 @@ number = 10 + t*(2n - t - 1)
 For convenience, let's assume the following file names for the input:
 
 * `refgenome.fa`
-* `configure.txt`
+* `configuration.txt`
 
 ```shell
 ulimit -n 50000
-SynDiv -r refgenome.fa -c configure.txt &
+SynDiv -r refgenome.fa -c configuration.txt &
 ```
 
 ## Citation
