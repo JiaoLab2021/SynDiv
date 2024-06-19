@@ -17,13 +17,15 @@ int32_t readBuffer = 1;
 
 void help_cal(char* argv[]);
 
-int main_cal(int argc, char* argv[])
-{
+int main_cal(int argc, char* argv[]) {
     // reference genome
     string referenceFileName;
 
     // collinear coordinates
     string coorFileName;
+
+    // no-syn coordinates
+    string noSynFileName;
 
     // Configuration file output by syri
     string syriConfigFileName;
@@ -66,20 +68,22 @@ int main_cal(int argc, char* argv[])
                 referenceFileName = argv[i + 1];
                 i++;
             }
-        }
-        else if(PARAMETER_CHECK("--coor", 6, parameterLength)) {
+        } else if(PARAMETER_CHECK("--coor", 6, parameterLength)) {
             if ((i+1) < argc) {
                 coorFileName = argv[i + 1];
                 i++;
             }
-        }
-        else if(PARAMETER_CHECK("--syri_outs", 11, parameterLength)) {
+        } else if (PARAMETER_CHECK("--no_syn", 8, parameterLength)) {
+            if ((i+1) < argc) {
+                noSynFileName = argv[i + 1];
+                i++;
+            }
+        } else if(PARAMETER_CHECK("--syri_outs", 11, parameterLength)) {
             if ((i+1) < argc) {
                 syriConfigFileName = argv[i + 1];
                 i++;
             }
-        }
-        else if(PARAMETER_CHECK("--aligns", 8, parameterLength)) {
+        } else if(PARAMETER_CHECK("--aligns", 8, parameterLength)) {
             if ((i+1) < argc) {
                 i = i+1;
                 string file = argv[i];
@@ -91,8 +95,7 @@ int main_cal(int argc, char* argv[])
                 }
                 i--;
             }
-        }
-        else if((PARAMETER_CHECK("-n", 2, parameterLength)) || 
+        } else if((PARAMETER_CHECK("-n", 2, parameterLength)) || 
         (PARAMETER_CHECK("--names", 7, parameterLength))) {
             if ((i+1) < argc) {
                 haveTitles = true;
@@ -106,15 +109,13 @@ int main_cal(int argc, char* argv[])
                 }
                 i--;
             }
-        }
-        else if(PARAMETER_CHECK("-o", 2, parameterLength) ||
+        } else if(PARAMETER_CHECK("-o", 2, parameterLength) ||
         (PARAMETER_CHECK("--output", 8, parameterLength))) {
             if ((i+1) < argc) {
                 outputFileName = argv[i + 1];
                 i++;
             }
-        }
-        else if(PARAMETER_CHECK("-t", 2, parameterLength) ||
+        } else if(PARAMETER_CHECK("-t", 2, parameterLength) ||
         (PARAMETER_CHECK("--threads", 9, parameterLength))) {
             if ((i+1) < argc) {
                 threadsCal = stoi(argv[i + 1]);
@@ -126,13 +127,11 @@ int main_cal(int argc, char* argv[])
                 readBuffer = stoul(argv[i + 1]);
                 i++;
             }
-        }
-        else if(PARAMETER_CHECK("--fast", 6, parameterLength)) {
+        } else if(PARAMETER_CHECK("--fast", 6, parameterLength)) {
             if ((i) < argc) {
                 fastBool = true;
             }
-        }
-        else if(PARAMETER_CHECK("--debug", 7, parameterLength)) {
+        } else if(PARAMETER_CHECK("--debug", 7, parameterLength)) {
             if ((i) < argc) {
                 debugCal = true;
             }
@@ -160,6 +159,11 @@ int main_cal(int argc, char* argv[])
     }
     if (coorFileName.size() == 0) {
         cerr << "[" << __func__ << "::" << getTime() << "] " << "Error: Missing file name '--coor'." << endl;
+        help_cal(argv);
+        exit(1);
+    }
+    if (noSynFileName.size() == 0) {
+        cerr << "[" << __func__ << "::" << getTime() << "] " << "Error: Missing file name '--no_syn'." << endl;
         help_cal(argv);
         exit(1);
     }
@@ -198,11 +202,13 @@ int main_cal(int argc, char* argv[])
     cerr << "[" << __func__ << "::" << getTime() << "] " << "Parse Parameters ..." << endl;
     // Get the aligns/syri.out file dictionary
     map<string, string> alignsMap;  // map<sampleName, alignsPath>
+    unordered_map<string, unordered_map<uint32_t, unordered_map<string, tuple<uint32_t, uint32_t> > > > insChrStartSampleLociTupMap;  // map<chr, map<start, map<sample, tuple<start, length> > > >
     map<string, map<string, string> > sampleSampleSyriMap;  // map<sample1, map<sample2, syriOutPath> >
-    tie(alignsMap, sampleSampleSyriMap) = CALNAME::aligns_parameter(
-         alignsTitles, 
-         alignsVec, 
-         syriConfigFileName
+    tie(alignsMap, insChrStartSampleLociTupMap, sampleSampleSyriMap) = CALNAME::cal_parameter(
+        alignsTitles, 
+        alignsVec, 
+        noSynFileName, 
+        syriConfigFileName
     );
 
     /* ************************************ Building Syntenic Coordinates Index ************************************ */
@@ -227,6 +233,7 @@ int main_cal(int argc, char* argv[])
             SynCoorTmp, 
             sampleSampleSyriMap, 
             alignsMap, 
+            insChrStartSampleLociTupMap, 
             allSynNum, 
             outputFileName
         );
@@ -236,6 +243,7 @@ int main_cal(int argc, char* argv[])
             SynCoorTmp, 
             sampleSampleSyriMap, 
             alignsMap, 
+            insChrStartSampleLociTupMap, 
             allSynNum, 
             outputFileName
         );
@@ -247,15 +255,15 @@ int main_cal(int argc, char* argv[])
 }
 
 
-void help_cal(char* argv[])
-{
-  cerr << "usage: " << argv[0] << " " << argv[1] << " -r FILE --coor FILE --syri_outs FILE --aligns FILE1 FILE2 .. FILEn [options]" << endl
+void help_cal(char* argv[]) {
+  cerr << "usage: " << argv[0] << " " << argv[1] << " -r FILE --coor FILE --no_syn FILE --syri_outs FILE --aligns FILE1 FILE2 .. FILEn [options]" << endl
        << "compute syntenic diversity" << endl
        << endl
        << "required arguments:" << endl
        << "    -r, --reference     FILE      input FASTA reference" << endl
-       << "    --coor              FILE      syntenic coordinates, output file of coor" << endl
-       << "    --syri_outs         FILE      config file for syri output (format: sample1\tsample2\tsyri.out)" << endl
+       << "    --coor              FILE      syntenic coordinates, output by 'SynDiv_c coor'" << endl
+       << "    --no_syn            FILE      non-syntenic coordinates, output by 'SynDiv_c no_syn'" << endl
+       << "    --syri_outs         FILE      config file for alignment, output by 'SynDiv_p' (format: sample1\tsample2\tsyri.out)" << endl
        << "    --aligns            FILE      list of output files of show-aligns (.aligns), one for multiple mate" << endl
        << endl
        << "optional arguments:" << endl
@@ -271,44 +279,37 @@ void help_cal(char* argv[])
 
 
 /**
- * @brief Parse parameters
+ * @brief Parse parameters (aligns + no_syn + no_syn_alignment)
  * 
  * @param alignsTitles         aligns file title
  * @param alignsVec            aligns path Vec
- * @param syriConfigFileName   Configuration file output by syri
+ * @param noSynFileName        'SynDiv_c no_syn' output file name
+ * @param syriConfigFileName   'SynDiv_p' output file name
  * 
- * @return make_tuple(alignsMap, sampleSampleSyriMap)       map<sampleName, alignsPath>, map<sample1, map<sample2, syriOutPath> >
+ * @return make_tuple(alignsMap, insChrStartSampleLociTupMap, sampleSampleSyriMap)       map<sampleName, alignsPath>, map<chr, map<start, map<sample, tuple<start, length> > > >, map<sample1, map<sample2, syriOutPath> >
 */
-tuple<map<string, string>, map<string, map<string, string> > > CALNAME::aligns_parameter(
+tuple<map<string, string>, unordered_map<string, unordered_map<uint32_t, unordered_map<string, tuple<uint32_t, uint32_t> > > >, map<string, map<string, string> > > CALNAME::cal_parameter(
     const vector<string> & alignsTitles, 
     const vector<string> & alignsVec, 
+    const string & noSynFileName,
     const string & syriConfigFileName
 ) {
     /* ************************************* aligns ************************************* */
     map<string, string> alignsMap;  // map<sampleName, alignsPath>
 
     uint32_t indexTmp = 0;  // Index of record title
-    for (auto iter1 : alignsVec) {
-        string alignsPathTmp = iter1;
+    std::regex reg1("\\.aligns(\\.gz|\\.GZ)?$", std::regex_constants::icase);  // Optimized regex
+
+    for (const auto& alignsPathTmp : alignsVec) {
         string ailgnsTitleTmp;
 
         // If it contains title
-        if (alignsTitles.size() > 0) {
+        if (!alignsTitles.empty()) {
             ailgnsTitleTmp = alignsTitles[indexTmp];
         } else {
-            vector<string> alignsPathVecTmp = split(alignsPathTmp, "/");  // split
-            ailgnsTitleTmp = alignsPathVecTmp.back();  // last
-            
-            std::regex reg1;
-            if (ailgnsTitleTmp.substr(ailgnsTitleTmp.length() - 3) == ".gz") {
-                reg1 = std::regex(".aligns.gz");
-            } else if (ailgnsTitleTmp.substr(ailgnsTitleTmp.length() - 3) == ".GZ") {
-                reg1 = std::regex(".aligns.GZ");
-            } else {
-                reg1 = std::regex(".aligns");
-            }
-
-            ailgnsTitleTmp = regex_replace(ailgnsTitleTmp, reg1, "");  // replace
+            size_t lastSlashPos = alignsPathTmp.find_last_of("/");  // Optimized string operation
+            ailgnsTitleTmp = alignsPathTmp.substr(lastSlashPos + 1);
+            ailgnsTitleTmp = regex_replace(ailgnsTitleTmp, reg1, "");  // Optimized regex use
         }
 
         // Assignment
@@ -317,15 +318,61 @@ tuple<map<string, string>, map<string, map<string, string> > > CALNAME::aligns_p
         indexTmp++;  // Index iteration
     }
 
-    /* ************************************* syri.out ************************************* */
-    map<string, map<string, string>> sampleSampleSyriMap;  // map<sample1, map<sample2, syriOutPath> >
+    /* ************************************* SynDiv_c no_syn ************************************* */
+    unordered_map<string, unordered_map<uint32_t, unordered_map<string, tuple<uint32_t, uint32_t> > > > insChrStartSampleLociTupMap;  // map<chr, map<start, map<sample, tuple<start, length> > > >
 
     // open file
-    GzChunkReader GzChunkReaderClass(syriConfigFileName);
+    GzChunkReader GzChunkReaderClassForSynDiv_c(noSynFileName);
 
     // read line
     string line;
-    while (GzChunkReaderClass.read_line(line)) {
+    while (GzChunkReaderClassForSynDiv_c.read_line(line)) {
+        // Skip empty lines
+        if (line.empty()) continue;
+
+        // split
+        std::istringstream iss(line);
+        vector<string> lineVec(std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>());
+
+        string chromosome = lineVec[0];
+        uint32_t refStart = isdigit(lineVec[1][0]) ? stoul(lineVec[1]) : 0;
+
+        if (refStart == 0) continue;
+
+        auto& sampleLociTupMap = insChrStartSampleLociTupMap[chromosome][refStart];
+
+        for (uint32_t i = 2; i < lineVec.size(); i++) {
+            vector<string> sampleNameLociVec = split(lineVec[i], ":");
+            if (sampleNameLociVec.size() < 2) continue;  // Skip
+            string& sampleName = sampleNameLociVec[0];
+            vector<string> regions = split(sampleNameLociVec[1], ";");
+
+            uint32_t minStart = UINT32_MAX;
+            uint32_t sampleLen = 0;
+
+            for (const auto& region : regions) {
+                vector<string> lociVec = split(region, "-");
+                if (lociVec.size() < 2) continue;  // Skip malformed regions
+                uint32_t qryStart = isdigit(lociVec[0][0]) ? stoul(lociVec[0]) : 0;
+                uint32_t qryEnd = isdigit(lociVec[1][0]) ? stoul(lociVec[1]) : 0;
+
+                if (qryStart < minStart) minStart = qryStart;
+                sampleLen += qryEnd - qryStart + 1;
+            }
+
+            sampleLociTupMap[sampleName] = make_tuple(minStart, sampleLen);
+        }
+    }
+
+    /* ************************************* SynDiv_p ************************************* */
+    map<string, map<string, string>> sampleSampleSyriMap;  // map<sample1, map<sample2, syriOutPath> >
+
+    // open file
+    GzChunkReader GzChunkReaderClassForSynDiv_p(syriConfigFileName);
+
+    // read line
+    line.clear();
+    while (GzChunkReaderClassForSynDiv_p.read_line(line)) {
         // Skip empty lines
         if (line.empty()) {
             continue;
@@ -338,7 +385,7 @@ tuple<map<string, string>, map<string, map<string, string> > > CALNAME::aligns_p
         // Check if listed is 3
         if (lineVec.size() != 3) {
             cerr << "[" << __func__ << "::" << getTime() << "] "
-                << "Error: The '" << syriConfigFileName << "' dataframe does not contain three columns." << endl;
+                << "Error: The dataframe in '" << syriConfigFileName << "' does not contain three columns as expected." << endl;
             exit(1);
         }
 
@@ -347,16 +394,10 @@ tuple<map<string, string>, map<string, map<string, string> > > CALNAME::aligns_p
         const string& sample2 = lineVec[1];
         const string& syriPath = lineVec[2];
 
-        // initialization
-        auto it = sampleSampleSyriMap.find(sample1);
-        if (it == sampleSampleSyriMap.end()) {
-            it = sampleSampleSyriMap.emplace(sample1, map<string, string>{}).first;
-        }
-
-        it->second[sample2] = syriPath;
+        sampleSampleSyriMap[sample1][sample2] = syriPath;
     }
-    
-    return make_tuple(alignsMap, sampleSampleSyriMap);
+
+    return make_tuple(alignsMap, insChrStartSampleLociTupMap, sampleSampleSyriMap);
 }
 
 
@@ -367,9 +408,7 @@ tuple<map<string, string>, map<string, map<string, string> > > CALNAME::aligns_p
  * 
  * @return tuple<strand, start, end>
 */
-tuple<string, uint32_t, uint32_t> CALNAME::COORTRANS::get_alignment_loc(
-    string infoTmp
-) {
+tuple<string, uint32_t, uint32_t> CALNAME::COORTRANS::get_alignment_loc(string infoTmp) {
     // Get alignment direction, start and end information ref
     vector<string> infoTmp_list = split(infoTmp, " - ");  // '+1 278 - 1703'
     vector<string> infoTmp_list_tmp = split(infoTmp_list[0], "1 ");  // '+1 278'
@@ -392,8 +431,7 @@ tuple<string, uint32_t, uint32_t> CALNAME::COORTRANS::get_alignment_loc(
  * 
  * @return int  0
 **/
-int CALNAME::COORTRANS::next_loci()
-{
+int CALNAME::COORTRANS::next_loci() {
     if (!endBool) {
         // read line
         string line;
@@ -414,7 +452,7 @@ int CALNAME::COORTRANS::next_loci()
 
                 if (refChr != qryChr) {
                     cerr << "[" << __func__ << "::" << getTime() << "] "
-                        << "Warning: Skipped alignment due to chromosomal mismatch -> " << refChr << " != " << qryChr << endl;
+                        << "Warning: Alignment skipped due to mismatch in chromosome names -> " << refChr << " != " << qryChr << endl;
                     chrBool = false;  // Record chromosome does not meet regulations
                 } else {
                     chrBool = true;  // Record chromosome compliance
@@ -452,17 +490,15 @@ int CALNAME::COORTRANS::next_loci()
 
                 // Reset coordinates (this)
                 refSeq = lineVec[1];
-                // Temporary ref sequence
-                string refSeqTmp = refSeq;
-                // Remove '.' to calculate length
-                refSeqTmp.erase(remove(refSeqTmp.begin(), refSeqTmp.end(), '.'), refSeqTmp.end());
+                // Calculate length without '.'
+                uint32_t refSeqLen = std::count_if(refSeq.begin(), refSeq.end(), [](char c){ return c != '.'; });
                 if (aliRefStrand == "+") {  // forward comparison
                     refStart = stoul(lineVec[0]);
-                    refEnd = refStart + refSeqTmp.size() - 1;
+                    refEnd = refStart + refSeqLen - 1;
                     refLoci = refStart - 1;  // Refresh coordinates
                 } else {  // reverse comparison
                     refEnd = stoul(lineVec[0]);
-                    refStart = refEnd - refSeqTmp.size() + 1;
+                    refStart = refEnd - refSeqLen + 1;
                     refLoci = refEnd + 1;  // Refresh coordinates
                 }
 
@@ -477,17 +513,15 @@ int CALNAME::COORTRANS::next_loci()
 
                 // Refresh coordinates (this)
                 qrySeq = lineVec[1];
-                // Temporary ref sequence
-                string qrySeqTmp = qrySeq;
-                // Remove '.' to calculate length
-                qrySeqTmp.erase(remove(qrySeqTmp.begin(), qrySeqTmp.end(), '.'), qrySeqTmp.end());
+                // Calculate length without '.'
+                uint32_t qrySeqLen = std::count_if(qrySeq.begin(), qrySeq.end(), [](char c){ return c != '.'; });
                 if (aliQryStrand == "+") {  // forward comparison
                     qryStart = stoul(lineVec[0]);
-                    qryEnd = qryStart + qrySeqTmp.size() - 1;
+                    qryEnd = qryStart + qrySeqLen - 1;
                     qryLoci = qryStart - 1;  // Refresh coordinates
                 } else {  // reverse comparison
                     qryEnd = stoul(lineVec[0]);
-                    qryStart = qryEnd - qrySeqTmp.size() + 1;
+                    qryStart = qryEnd - qrySeqLen + 1;
                     qryLoci = qryEnd + 1;  // Refresh coordinates
                 }
 
@@ -536,7 +570,7 @@ uint32_t CALNAME::COORTRANS::find_loci(
     string chr_, 
     uint32_t refLoci_
 ) {
-    /* ***************************** After traversing, return ¡®0¡¯ ***************************** */
+    /* ***************************** After traversing, return 0 ***************************** */
     if (endBool) {
         return 0;
     }
@@ -616,8 +650,7 @@ uint32_t CALNAME::COORTRANS::find_loci(
  * 
  * @return 0
 **/
-int CALNAME::SYRIOUT::next_loci()
-{
+int CALNAME::SYRIOUT::next_loci() {
     // Not finished traversing
     if (!endBool) {
         // read line
@@ -635,7 +668,7 @@ int CALNAME::SYRIOUT::next_loci()
             // Check if the number of columns is normal
             if (lineVec.size() != 12) {
                 cerr << "[" << __func__ << "::" << getTime() << "] "
-                    << "'" << fileName_ << "': does not contain 12 columns. -> " << line << endl;
+                    << "'" << fileName_ << "': Expected 12 columns, but got a different number. -> " << line << endl;
                 exit(1);
             }
 
@@ -645,6 +678,9 @@ int CALNAME::SYRIOUT::next_loci()
             refEnd = stoul(lineVec[2]);
             qryStart = stoul(lineVec[6]);
             qryEnd = stoul(lineVec[7]);
+
+            if (refStart > refEnd) std::swap(refStart, refEnd);
+            if (qryStart > qryEnd) std::swap(qryStart, qryEnd);
         } else {  // File traversal completed
             // Clear all variables
             chr.clear();
@@ -727,17 +763,13 @@ map<string, uint32_t> CALNAME::build_fasta_index(
     // open file
     if(!gzfp) {
         cerr << "[" << __func__ << "::" << getTime() << "] "
-                << "'"
-                << referenceFileName 
-                << "': No such file or directory or possibly reached the maximum open file limit. You can set 'ulimit -n' to a larger value to continue." 
-                << endl;
+            << "'" << referenceFileName << "': File not found or maximum open file limit reached. Consider increasing the 'ulimit -n' value to proceed." << endl;
         exit(1);
     } else {
         kseq_t *ks;
         ks = kseq_init(gzfp);
     
         while( kseq_read(ks) > 0 ) {
-            
             string chromosome = ks->name.s;
             uint32_t chrLen = ks->seq.l;
             // string sequence = ks->seq.s;
@@ -761,11 +793,12 @@ map<string, uint32_t> CALNAME::build_fasta_index(
 /**
  * @brief calculate
  * 
- * @param sampleName               sample name
- * @param refLenMap                chromosome length
- * @param SynCoorTmp               collinear coordinates
- * @param sampleSampleSyriMap      syri.out output path dictionary
- * @param alignsMap                show-aligns output path dictionary
+ * @param sampleName                   sample name
+ * @param refLenMap                    chromosome length
+ * @param SynCoorTmp                   collinear coordinates
+ * @param sampleSampleSyriMap          syri.out output path dictionary
+ * @param alignsMap                    show-aligns output path dictionary
+ * @param insChrStartSampleLociTupMap  map<chr, map<start, map<sample, tuple<start, length> > > >
  * 
  * @return CALSTRUCTURE
 **/
@@ -774,14 +807,17 @@ CALNAME::CALSTRUCTURE CALNAME::calculate_run(
     const map<string, uint32_t> & refLenMap, 
     const SYNCOOR & SynCoorTmp, 
     const map<string, map<string, string> > & sampleSampleSyriMap, 
-    const map<string, string> & alignsMap
-)
-{
+    const map<string, string> & alignsMap, 
+    const unordered_map<string, unordered_map<uint32_t, unordered_map<string, tuple<uint32_t, uint32_t> > > > & insChrStartSampleLociTupMap
+) {
     // save result
     CALSTRUCTURE CALSTRUCTURETMP;
 
     // Sample name
     CALSTRUCTURETMP.sampleName = sampleName;
+
+    // The number of sample
+    const uint32_t sampleNum = SynCoorTmp.sampleNameVec.size();
 
     /* ************************************************ Find the index of sampleName ************************************************ */
     // Find the next index after sampleName
@@ -789,7 +825,7 @@ CALNAME::CALSTRUCTURE CALNAME::calculate_run(
     int idxTmp = distance(SynCoorTmp.sampleNameVec.begin(), findResult) + 1;
 
     // If it is the last sample, just skip it
-    if (idxTmp > SynCoorTmp.sampleNameVec.size() - 1) {
+    if (idxTmp > sampleNum - 1) {
         return CALSTRUCTURETMP;
     }
     
@@ -801,12 +837,11 @@ CALNAME::CALSTRUCTURE CALNAME::calculate_run(
         // Find the sample iterator
         map<string, map<string, string> >::const_iterator findIter1 = sampleSampleSyriMap.find(sampleName);
         if (findIter1 == sampleSampleSyriMap.end()) {  // Warn if no syri.out file for this sample is submitted
-
-            cerr << "[" << __func__ << "::" << getTime() << "] " << "Warning: '" << sampleName << "' is not present in sampleSampleSyriMap." << endl;
+            cerr << "[" << __func__ << "::" << getTime() << "] " << "Warning: The sample name '" << sampleName << "' is not found in the sampleSampleSyriMap." << endl;
         }
 
         // Judging from the post-index sample
-        for (size_t i = idxTmp; i < SynCoorTmp.sampleNameVec.size(); i++) {
+        for (size_t i = idxTmp; i < sampleNum; i++) {
             string sampleName2 = SynCoorTmp.sampleNameVec[i];
 
             if (sampleName2 == "reference") {  // Reference genome without syri.out
@@ -824,8 +859,7 @@ CALNAME::CALSTRUCTURE CALNAME::calculate_run(
             map<string, string>::const_iterator findIter2 = findIter1->second.find(sampleName2);
 
             if (findIter2 == findIter1->second.end()) {  // Warn if no syri.out file for this sample is submitted
-
-                cerr << "[" << __func__ << "::" << getTime() << "] " << "Warning: '" << sampleName << "' and '" << sampleName2 << "' are not present in sampleSampleSyriMap." << endl;
+                cerr << "[" << __func__ << "::" << getTime() << "] " << "Warning: Neither '" << sampleName << "' nor '" << sampleName2 << "' are present in the sampleSampleSyriMap." << endl;
 
                 // Due to too few coordinates or other reasons, there is no alignment result for this sample, and an empty class is constructed
                 SyriOutMap[sampleName2] = SYRIOUT();  // SYRIOUT
@@ -843,19 +877,17 @@ CALNAME::CALSTRUCTURE CALNAME::calculate_run(
     map<string, COORTRANS> CoorTransMap;  // map<sampleName, COORTRANS>
 
     // Judging from the post-index sample
-    for (size_t i = idxTmp - 1; i < SynCoorTmp.sampleNameVec.size(); i++) {
+    for (size_t i = idxTmp - 1; i < sampleNum; i++) {
     
         string sampleName2 = SynCoorTmp.sampleNameVec[i];
 
         if (sampleName2 == "reference") {  // The reference genome has no .aligns
-        
             continue;
         }
 
         // Find the aligns path
         map<string, string>::const_iterator findIter1 = alignsMap.find(sampleName2);
         if (findIter1 == alignsMap.end()) {  // If the aligns file corresponding to the sample is not submitted, an error will be reported
-        
             cerr << "[" << __func__ << "::" << getTime() << "] " << "Error: '" << sampleName2 << "' cannot be found in alignsMap." << endl;
             exit(1);
         }
@@ -870,13 +902,16 @@ CALNAME::CALSTRUCTURE CALNAME::calculate_run(
 
     // Traverse the total coordinate hash table
     for (const auto& iter1 : SynCoorTmp.coorChrLociSampleLociMap) {  // map<refChr, map<refStart, map<sample, tuple(start, end)> > >
-    
         // chromosome
         string chrTmp = iter1.first;
 
+        // Coordinates of insertion
+        const auto& insChrStartSampleLociTupMapFindIter = insChrStartSampleLociTupMap.find(chrTmp);
+
         // initialize dictionary
-        auto& sampleSynOutMap = CALSTRUCTURETMP.sampleSynOutMap[chrTmp];
-        auto& sampleSynOutMapTmp =  CALSTRUCTURETMP.sampleSynOutMapTmp[chrTmp];
+        auto& sampleSynOutMap = CALSTRUCTURETMP.sampleSynOutMap[chrTmp];  // synteny + insertion
+        auto& refStartAveSynMap = CALSTRUCTURETMP.sampleSynOutInsMap[chrTmp];  // insertion
+        auto& sampleSynOutMapTmp =  CALSTRUCTURETMP.sampleSynOutMapTmp[chrTmp];  // debug
 
         // record last coordinate
         uint32_t refEndTmp = 0;
@@ -885,62 +920,48 @@ CALNAME::CALSTRUCTURE CALNAME::calculate_run(
         uint32_t preSynNum = 0;
 
         for(const auto& [refStart, SampleLociMap] : iter1.second) {  // map<refStart, map<sample, tuple(start, end)> >
-        
             // start and end of the line
             uint32_t refEnd = get<1>(SampleLociMap.at("reference"));
+
+            // Coordinates of insertion
+            const auto& insStartSampleLociTupMapFindIter = (insChrStartSampleLociTupMapFindIter != insChrStartSampleLociTupMap.end()) ? insChrStartSampleLociTupMapFindIter->second.find(refStart) : insChrStartSampleLociTupMapFindIter->second.end();
 
             // End coordinates for record collinearity
             refChrMapTmp[chrTmp] = refEnd;
 
             // If there is a distance from the previous coordinate
             if (refStart - refEndTmp > 1) {
-            
-                for (size_t refLoci = refEndTmp + 1; refLoci < refStart; refLoci++) {
-                
+                for (uint32_t refLoci = refEndTmp + 1; refLoci < refStart; refLoci++) {
                     uint32_t synNumTmp = 0;  // Collinearity Quantity, Temporary
 
-                    for (size_t i = idxTmp; i < SynCoorTmp.sampleNameVec.size(); i++) {
-                    
+                    for (uint32_t i = idxTmp; i < sampleNum; i++) {
                         string sampleName2 = SynCoorTmp.sampleNameVec[i];
 
-                        // If the reference has no coordinates with you, then there are no coordinates
-                        if (sampleName == "reference") {
-                        
-                            continue;
-                        }
+                        // If the reference has no coordinates with sampleName2, then there are no coordinates
+                        if (sampleName == "reference") continue;
                         
                         // if other
                         uint32_t lociA = CoorTransMap[sampleName].find_loci(chrTmp, refLoci);  // The coordinates of the reference genome go to sampleName
                         uint32_t lociB = CoorTransMap[sampleName2].find_loci(chrTmp, refLoci);  // The coordinates of the reference genome go to sampleName2
 
                         if (lociA == 0 && lociB == 0) { // both del
-                        
                             synNumTmp++;  // denoted as syn
 
                             // debug
                             if (debugCal) {
-                            
                                 sampleSynOutMapTmp[refLoci] += sampleName2 + ":" + to_string(lociA) + "-" + to_string(lociB) + ";";
                                 cerr << chrTmp << " " << sampleName << " " << sampleName2 << " " << refLoci << " lociA:" << lociA << " lociB:" << lociB << " syn:ture" << endl;
                             }
-                        }
-                        else if (lociA != 0 && lociB == 0) {  // One has coordinates, the other doesn't, one del
-                        
+                        } else if (lociA != 0 && lociB == 0) {  // A->synteny, B->deletion
                             continue;
-                        }
-                        else if (lociA == 0 && lociB != 0) {  // One has coordinates, the other doesn't, one del
-                        
+                        } else if (lociA == 0 && lociB != 0) {  // A->deletion, B->synteny
                             continue;
-                        }
-                        else {  // There are coordinates, and then judge whether A and B of the coordinates are collinear
-                        
-                            if (SyriOutMap[sampleName2].find_loci(chrTmp, lociA) > 0)  // A and B are collinear
-                            {
+                        } else {  // There are coordinates, and then judge whether A and B of the coordinates are collinear
+                            if (SyriOutMap[sampleName2].find_loci(chrTmp, lociA) > 0) {  // A and B are collinear
                                 synNumTmp++;  // denoted as syn
 
                                 // debug
                                 if (debugCal) {
-
                                     sampleSynOutMapTmp[refLoci] += sampleName2 + ":" + to_string(lociA) + "-" + to_string(lociB) + ";";
                                     cerr << chrTmp << " " << sampleName << " " << sampleName2 << " " << refLoci << " lociA:" << lociA << " lociB:" << lociB << " syn:ture" << endl;
                                 }
@@ -949,31 +970,49 @@ CALNAME::CALSTRUCTURE CALNAME::calculate_run(
                     }
 
                     // If it is different from the previous synNum, add
-                    // if (synNumTmp != preSynNum || (synNumTmp == 0 && preSynNum == 0))
-                    if (synNumTmp != preSynNum)
-                    {
+                    if (synNumTmp != preSynNum) {
                         sampleSynOutMap[refLoci] = synNumTmp;
                         preSynNum = synNumTmp;
                     }
                 }
+            } else if (sampleName != "reference" && insStartSampleLociTupMapFindIter != insChrStartSampleLociTupMapFindIter->second.end()) {  // Note: Insertions do not have corresponding coordinates on the reference genome, hence they are stored in sampleSynOutInsMap.
+                const auto& insLociMapFindIter = insStartSampleLociTupMapFindIter->second.find(sampleName);
+
+                if (insLociMapFindIter != insStartSampleLociTupMapFindIter->second.end()) {  // The sample is inserted at this site
+                    uint32_t sampleStart = get<0>(insLociMapFindIter->second);  // Start of the synteny gap
+                    uint32_t sampleLen = get<1>(insLociMapFindIter->second);  // Length of the synteny gap
+
+                    uint32_t synNumInsTmp = 0;  // Amount of synteny
+
+                    for (uint32_t i = idxTmp; i < sampleNum; i++) {
+                        const string& sampleName2 = SynCoorTmp.sampleNameVec[i];
+
+                        if (SyriOutMap[sampleName2].find_loci(chrTmp, sampleStart) <= 0) continue;  // If there is no synteny, skip;
+
+                        auto [sampleSynChr, sampleSynStart, sampleSynEnd] = SyriOutMap[sampleName2].get_alignment_loc();
+
+                        synNumInsTmp += sampleSynEnd - sampleSynStart + 1;  // Amount of synteny
+                    }
+
+                    // Avoid division by zero and cache the number of samples
+                    uint32_t validSampleCount = sampleNum - idxTmp;
+                    if (validSampleCount > 0) {
+                        float value = synNumInsTmp / static_cast<float>(sampleLen * validSampleCount);
+                        refStartAveSynMap[refStart] = (value > 1.0f) ? 1.0f : value;
+                    }
+                }
             }
 
-            // Calculate the score of the compared area
-            for (size_t refLoci = refStart; refLoci < refEnd + 1; refLoci++)
-            {
+            // Calculate the score of the alignmentes area
+            for (uint32_t refLoci = refStart; refLoci < refEnd + 1; refLoci++) {
                 uint32_t synNumTmp = 0;  // Amount of collinearity, temporary
 
-                for (size_t i = idxTmp; i < SynCoorTmp.sampleNameVec.size(); i++)
-                {
+                for (uint32_t i = idxTmp; i < sampleNum; i++) {
                     string sampleName2 = SynCoorTmp.sampleNameVec[i];
-
+                    
                     // If there are coordinates in 'coor.txt', it means collinearity, record it directly
                     // SampleLociMap  ->  // map<sample, tuple<start, end> >
-                    if (
-                        get<0>(SampleLociMap.at(sampleName)) > 0 && 
-                        get<0>(SampleLociMap.at(sampleName2)) > 0
-                    )  // both syntenic
-                    {
+                    if (get<0>(SampleLociMap.at(sampleName)) > 0 && get<0>(SampleLociMap.at(sampleName2)) > 0) {  // both syntenic
                         synNumTmp++;  // recorded as syn
 
                         // debug
@@ -981,16 +1020,9 @@ CALNAME::CALSTRUCTURE CALNAME::calculate_run(
                             sampleSynOutMapTmp[refLoci] += sampleName2 + ";";
                             cerr << chrTmp << " " << sampleName << " " << sampleName2 << " " << refLoci << " syn:ture" << endl;
                         }
-                    } else if (
-                        get<0>(SampleLociMap.at(sampleName)) == 0 && 
-                        get<0>(SampleLociMap.at(sampleName2)) > 0
-                    ) {  // one syntenic
-                    
+                    } else if (get<0>(SampleLociMap.at(sampleName)) == 0 && get<0>(SampleLociMap.at(sampleName2)) > 0) {  // one syntenic
                         continue;
-                    } else if (
-                        get<0>(SampleLociMap.at(sampleName)) > 0 && 
-                        get<0>(SampleLociMap.at(sampleName2)) == 0
-                    ) {  // one syntenic
+                    } else if (get<0>(SampleLociMap.at(sampleName)) > 0 && get<0>(SampleLociMap.at(sampleName2)) == 0) {  // one syntenic
                         continue;
                     } else {  // no syntenic
                         // If the reference has no coordinates with you, then there are no coordinates.
@@ -1027,8 +1059,7 @@ CALNAME::CALSTRUCTURE CALNAME::calculate_run(
                 }
 
                 // If it is different from the previous synNum, add
-                if (synNumTmp != preSynNum)
-                {
+                if (synNumTmp != preSynNum) {
                     sampleSynOutMap[refLoci] = synNumTmp;
                     preSynNum = synNumTmp;
                 }
@@ -1062,7 +1093,7 @@ CALNAME::CALSTRUCTURE CALNAME::calculate_run(
         for (uint32_t refLoci = refPosTmp + 1; refLoci < refLen + 1; refLoci++) {
             uint32_t synNumTmp = 0;  // Amount of collinearity, temporary
 
-            for (size_t i = idxTmp; i < SynCoorTmp.sampleNameVec.size(); i++) {
+            for (size_t i = idxTmp; i < sampleNum; i++) {
                 string sampleName2 = SynCoorTmp.sampleNameVec[i];
 
                 // If the reference has no coordinates with you, then there are no coordinates.
@@ -1119,18 +1150,20 @@ CALNAME::CALSTRUCTURE CALNAME::calculate_run(
  * @param calOutStr                 All calculation results for a sample
  * @param refLenMap                 Chromosome length information, map<string, length>
  * @param chrSynNumVecMap           Save the final result map<chr, vector<synNum> >
+ * @param chrLociAveSynNumInsMap    Save the final result map<chr, map<refStart, synNumAve> > (insertion)
  * 
  * @return 0
 **/
 int CALNAME::merge(
     const CALSTRUCTURE& calOutStr,
     const map<string, uint32_t> & refLenMap,
-    map<string, vector<uint32_t> >& chrSynNumVecMap
+    map<string, vector<uint32_t> >& chrSynNumVecMap,
+    map<string, map<uint32_t, float> > & chrLociAveSynNumInsMap
 ) {
     cerr << "[" << __func__ << "::" << getTime() << "] " << "Combine the computation results of " << calOutStr.sampleName << "." << endl;
-    
-    for(const auto& [chromosome, chrLen] : refLenMap)  // map<string, length>
-    {
+
+    // synteny + deletion
+    for(const auto& [chromosome, chrLen] : refLenMap) {  // map<string, length>
         // Save the final result map<chr, vector<synNum> >
         auto& SynNumVec = chrSynNumVecMap[chromosome];
 
@@ -1182,6 +1215,20 @@ int CALNAME::merge(
         }
     }
 
+    // deletion
+    for (auto& refStartAveSynMapIter : calOutStr.sampleSynOutInsMap) {  // map<chr, map<refLoci, synNumAve> >
+        for (auto & StartAveSynIter : refStartAveSynMapIter.second) {  // map<refLoci, synNumAve>
+            auto& LociAveSynNumInsMap = chrLociAveSynNumInsMap[refStartAveSynMapIter.first];
+            auto findIter = LociAveSynNumInsMap.find(StartAveSynIter.first);
+            if (findIter == LociAveSynNumInsMap.end()) {
+                LociAveSynNumInsMap[StartAveSynIter.first] = StartAveSynIter.second;
+            } else {
+                findIter->second += StartAveSynIter.second;
+            }
+        }
+    }
+    
+
     return 0;
 }
 
@@ -1189,12 +1236,13 @@ int CALNAME::merge(
 /**
  * @brief calculate
  * 
- * @param refLenMap                Reference genome length
- * @param SynCoorTmp               collinear coordinates
- * @param sampleSampleSyriMap      syri.out output path dictionary
- * @param alignsMap                show-aligns output path dictionary
- * @param allSynNum                All combination quantities
- * @param outputFileName           output file name
+ * @param refLenMap                    Reference genome length
+ * @param SynCoorTmp                   collinear coordinates
+ * @param sampleSampleSyriMap          syri.out output path dictionary
+ * @param alignsMap                    show-aligns output path dictionary
+ * @param insChrStartSampleLociTupMap  map<chr, map<start, map<sample, tuple<start, length> > > >
+ * @param allSynNum                    All combination quantities
+ * @param outputFileName               output file name
  * 
  * @return 0
 **/
@@ -1203,12 +1251,13 @@ int CALNAME::calculate(
     const SYNCOOR & SynCoorTmp, 
     const map<string, map<string, string> > & sampleSampleSyriMap, 
     const map<string, string> & alignsMap, 
+    const unordered_map<string, unordered_map<uint32_t, unordered_map<string, tuple<uint32_t, uint32_t> > > > & insChrStartSampleLociTupMap, 
     const uint32_t & allSynNum, 
     const string & outputFileName
-)
-{
+) {
     // final result
     map<string, vector<uint32_t> > chrSynNumVecMap;  // map<chr, vector<synNum> >
+    map<string, map<uint32_t, float> > chrLociAveSynNumInsMap;  // map<refChr, map<refStart, aveSynSum> >
 
     /* ********************************************** calculate syntenic diversity ********************************************** */
     // process pool
@@ -1230,9 +1279,7 @@ int CALNAME::calculate(
         string sampleNameTmp = iter1;
 
         // last sample skipped
-        if (sampleNameTmp == SynCoorTmp.sampleNameVec[SynCoorTmp.sampleNameVec.size() - 1]) {
-            continue;
-        }
+        if (sampleNameTmp == SynCoorTmp.sampleNameVec.back()) continue;
 
         cerr << "[" << __func__ << "::" << getTime() << "] " << "Calculate: " << sampleNameTmp << endl;
 
@@ -1244,7 +1291,8 @@ int CALNAME::calculate(
                 ref(refLenMap), 
                 ref(SynCoorTmp), 
                 ref(sampleSampleSyriMap), 
-                ref(alignsMap)
+                ref(alignsMap), 
+                ref(insChrStartSampleLociTupMap)
             )
         );
 
@@ -1254,7 +1302,7 @@ int CALNAME::calculate(
             for (auto&& calOutStrFuture : calOutStrFutureVec) {  // vector<future<CALSTRUCTURE> >
                 CALSTRUCTURE calOutStr = move(calOutStrFuture.get());  // future<CALSTRUCTURE>
                 // merged result
-                merge(calOutStr, refLenMap, chrSynNumVecMap);
+                merge(calOutStr, refLenMap, chrSynNumVecMap, chrLociAveSynNumInsMap);
             }
 
             calOutStrFutureVec.clear();
@@ -1270,7 +1318,7 @@ int CALNAME::calculate(
         for (auto&& calOutStrFuture : calOutStrFutureVec) {  // vector<future<CALSTRUCTURE> >
             CALSTRUCTURE calOutStr = move(calOutStrFuture.get());  // future<CALSTRUCTURE>
             // merged result
-            merge(calOutStr, refLenMap, chrSynNumVecMap);
+            merge(calOutStr, refLenMap, chrSynNumVecMap, chrLociAveSynNumInsMap);
         }
         calOutStrFutureVec.clear();
         vector<future<CALSTRUCTURE> >().swap(calOutStrFutureVec);
@@ -1278,12 +1326,8 @@ int CALNAME::calculate(
         malloc_trim(0); // 0 is for heap memory
     }
 
-    /* ********************************************** save the result ********************************************** */
+    /* ********************************************** save the result (synteny + deletion) ********************************************** */
     cerr << "[" << __func__ << "::" << getTime() << "] " << "Results are being saved to '" << outputFileName << "'" << endl;
-    // total number of samples
-    const uint32_t sampleNum = SynCoorTmp.sampleNameVec.size();
-    // Correction factor
-    // const double correctionFactor = static_cast<double> (sampleNum - 1) / sampleNum;  // (n-1)/n
 
     SAVE SAVEClass(outputFileName);
 
@@ -1295,10 +1339,7 @@ int CALNAME::calculate(
     for (const auto& [chromosome, SynNumVec] : chrSynNumVecMap) {  // map<chr, vector<synNum> >
         uint32_t loci = 1;
         for (const auto& synNum : SynNumVec) {  // vector<synNum>
-            // outStream << chromosome << "\t" << loci << "\t" << allSynNum << "\t" 
-            //         << synNum << "\t" << 1 - (synNum/(double)allSynNum)*(double)correctionFactor << "\n";
-
-            outStream << chromosome << "\t" << loci << "\t" << allSynNum << "\t" << synNum << "\t" << 1 - synNum/(double)allSynNum << "\n";
+            outStream << chromosome << "\t" << loci << "\t" << allSynNum << "\t" << synNum << "\t" << 1.0 - synNum/(double)allSynNum << "\n";
 
             if (outStream.tellp() >= CACHE_SIZE) {  // Cache size is 10mb
                 string outTxt = outStream.str();
@@ -1319,6 +1360,38 @@ int CALNAME::calculate(
         }
     }
 
+    /* ********************************************** save the result (insertion) ********************************************** */
+    string outputFileNameIns = outputFileName;
+    if (!outputFileNameIns.empty()) outputFileNameIns += ".ins";
+    cerr << "[" << __func__ << "::" << getTime() << "] " << "Results (insertion) are being saved to '" << outputFileNameIns << "'" << endl;
+    SAVE SAVEInsClass(outputFileNameIns);
+    // total number of samples
+    const uint32_t sampleNum = SynCoorTmp.sampleNameVec.size();
+    // Score
+    outStream << "#Insertion\n#CHROM\tPOS\tSyntenic_Diversity\n";
+    for (auto LociAveSynNumInsMapIter : chrLociAveSynNumInsMap) {  // map<refChr, map<refStart, aveSynSum> >
+        for (auto AveSynNumInsMapIter : LociAveSynNumInsMapIter.second) {  // map<refStart, aveSynSum>
+            outStream << LociAveSynNumInsMapIter.first << "\t" << AveSynNumInsMapIter.first << "\t" << 1.0 - AveSynNumInsMapIter.second/(float)sampleNum << "\n";
+
+            if (outStream.tellp() >= CACHE_SIZE) {  // Cache size is 10mb
+                string outTxt = outStream.str();
+                SAVEInsClass.save(outTxt);
+                // empty stringstream
+                outStream.str(string());
+                outStream.clear();
+            }
+        }
+    }
+
+    if (outStream.tellp() > 0) {  // write one last time
+        string outTxt = outStream.str();
+        SAVEInsClass.save(outTxt);
+        // empty stringstream
+        outStream.str(string());
+        outStream.clear();
+    }
+    
+
     // Close the thread pool
     pool.shutdown();
 
@@ -1336,18 +1409,20 @@ int CALNAME::calculate(
  * @param chrLen                             chromosome length
  * @param CALSTRUCTUREVec                    output of threads
  * 
- * @return tuple<chromosome, synOutVecTmp>   tuple<chr, vector<synNum> >
+ * @return tuple<chromosome, synOutVecTmp, chrLociAveSynNumInsMap>   tuple<chr, vector<synNum>, map<refStart, synNumAve> >
 **/
-tuple<string, vector<uint32_t> > CALNAME::merge_fast(
+tuple<string, vector<uint32_t>, map<uint32_t, float> > CALNAME::merge_fast(
     string chromosome, 
     uint32_t chrLen, 
     const vector<CALSTRUCTURE> & CALSTRUCTUREVec
 ) {
     // save result
     vector<uint32_t> synOutVecTmp(chrLen, 0);  //  vector<synNum>
+
+    map<uint32_t, float> LociAveSynNumInsMap;  // Save the final result map<refStart, synNumAve> (insertion)
     
-    for (const auto& CALSTRUCTURETmp : CALSTRUCTUREVec) // vector<CALSTRUCTURE>
-    {
+    // synteny and deletion
+    for (const auto& CALSTRUCTURETmp : CALSTRUCTUREVec) {  // vector<CALSTRUCTURE>
         // Iterator corresponding to chromosome
         map<string, map<uint32_t, uint32_t> >::const_iterator iter0 = CALSTRUCTURETmp.sampleSynOutMap.find(chromosome);
         map<string, map<uint32_t, string> >::const_iterator iter3 = CALSTRUCTURETmp.sampleSynOutMapTmp.find(chromosome);
@@ -1390,19 +1465,35 @@ tuple<string, vector<uint32_t> > CALNAME::merge_fast(
         }
     }
 
-    return make_tuple(chromosome, synOutVecTmp);
+    // deletion
+    for (const auto& calOutStr : CALSTRUCTUREVec) {  // vector<calOutStr>
+        for (auto& refStartAveSynMapIter : calOutStr.sampleSynOutInsMap) {  // map<chr, map<refLoci, synNumAve> >
+            if (refStartAveSynMapIter.first != chromosome) continue;  // Skip if chromosome doesn't match
+            for (auto & StartAveSynIter : refStartAveSynMapIter.second) {  // map<refLoci, synNumAve>
+                auto findIter = LociAveSynNumInsMap.find(StartAveSynIter.first);
+                if (findIter == LociAveSynNumInsMap.end()) {
+                    LociAveSynNumInsMap[StartAveSynIter.first] = StartAveSynIter.second;
+                } else {
+                    findIter->second += StartAveSynIter.second;
+                }
+            }
+        }
+    }
+
+    return make_tuple(chromosome, synOutVecTmp, LociAveSynNumInsMap);
 }
 
 
 /**
  * @brief calculate
  * 
- * @param refLenMap                chromosome length
- * @param SynCoorTmp               collinear coordinates
- * @param sampleSampleSyriMap      syri.out output path dictionary
- * @param alignsMap                show-aligns output path dictionary
- * @param allSynNum                All combination quantities
- * @param outputFileName           Output file name
+ * @param refLenMap                    chromosome length
+ * @param SynCoorTmp                   collinear coordinates
+ * @param sampleSampleSyriMap          syri.out output path dictionary
+ * @param alignsMap                    show-aligns output path dictionary
+ * @param insChrStartSampleLociTupMap  map<chr, map<start, map<sample, tuple<start, length> > > >
+ * @param allSynNum                    All combination quantities
+ * @param outputFileName               Output file name
  * 
  * @return 0
 **/
@@ -1411,6 +1502,7 @@ int CALNAME::calculate_fast(
     const SYNCOOR & SynCoorTmp, 
     const map<string, map<string, string> > & sampleSampleSyriMap, 
     const map<string, string> & alignsMap, 
+    const unordered_map<string, unordered_map<uint32_t, unordered_map<string, tuple<uint32_t, uint32_t> > > > & insChrStartSampleLociTupMap, 
     const uint32_t & allSynNum, 
     const string & outputFileName
 ) {
@@ -1447,7 +1539,8 @@ int CALNAME::calculate_fast(
                 ref(refLenMap), 
                 ref(SynCoorTmp), 
                 ref(sampleSampleSyriMap), 
-                ref(alignsMap)
+                ref(alignsMap), 
+                ref(insChrStartSampleLociTupMap)
             )
         );
 
@@ -1456,8 +1549,7 @@ int CALNAME::calculate_fast(
 
     // Multi-threaded result saving
     vector<CALSTRUCTURE> CALSTRUCTUREVecTmp;
-    for (size_t i = 0; i < calOutStrVecTmp.size(); i++)
-    {
+    for (size_t i = 0; i < calOutStrVecTmp.size(); i++) {
         CALSTRUCTUREVecTmp.push_back(move(calOutStrVecTmp[i].get()));
     }
     calOutStrVecTmp.clear();
@@ -1467,7 +1559,7 @@ int CALNAME::calculate_fast(
 
     /* ********************************************** merge the result ********************************************** */
     cerr << "[" << __func__ << "::" << getTime() << "] " << "Merge the result." << endl;
-    vector<future<tuple<string, vector<uint32_t> > > > mergeOutVec;
+    vector<future<tuple<string, vector<uint32_t>, map<uint32_t, float> > > > mergeOutVec;
     for (const auto& iter1 : refLenMap) {  // map<chromosome, length>
         string chromosome = iter1.first;
         uint32_t chrLen = iter1.second;
@@ -1488,29 +1580,30 @@ int CALNAME::calculate_fast(
 
     /* ********************************************** save the result ********************************************** */
     cerr << "[" << __func__ << "::" << getTime() << "] " << "Results are being saved to '" << outputFileName << "'" << endl;
-    // total number of samples
-    const uint32_t sampleNum = SynCoorTmp.sampleNameVec.size();
-    // // total number of samples
-    // const double correctionFactor = static_cast<double> (sampleNum - 1) / sampleNum;  // (n-1)/n
+    string outputFileNameIns = outputFileName;
+    if (!outputFileNameIns.empty()) outputFileNameIns += ".ins";
+    cerr << "[" << __func__ << "::" << getTime() << "] " << "Results (insertion) are being saved to '" << outputFileNameIns << "'" << endl;
 
     SAVE SAVEClass(outputFileName);
+    SAVE SAVEInsClass(outputFileNameIns);
 
     stringstream outStream; // Use stringstream instead of string concatenation
+    stringstream outStreamIns; // Use stringstream instead of string concatenation
     static const uint64_t CACHE_SIZE = 1024 * 1024 * 10; // Cache size is 10mb
     outStream.str().reserve(CACHE_SIZE);
+    outStreamIns.str().reserve(CACHE_SIZE);
+    // total number of samples
+    const uint32_t sampleNum = SynCoorTmp.sampleNameVec.size();
     outStream << "#CHROM\tPOS\tAll_States\tSyntenic_States\tSyntenic_Diversity\n";
+    outStreamIns << "#Insertion\n#CHROM\tPOS\tSyntenic_Diversity\n";
 
     for (size_t i = 0; i < mergeOutVec.size(); ++i) {  // vector<future<tuple<string, vector<uint32_t> > > > 
-        string chromosome;
-        vector<uint32_t> calOutVec;  // vector<uint32_t>
+        auto [chromosome, calOutVec, LociAveSynNumInsMap] = move(mergeOutVec[i].get());  // Get multi-threaded results
 
-        tie(chromosome, calOutVec) = move(mergeOutVec[i].get());  // Get multi-threaded results
+        // synteny and deletion
         uint32_t loci = 1;
-        for (const auto& iter1 : calOutVec) {
-            // outStream << chromosome << "\t" << iter1.first << "\t" << allSynNum << "\t" 
-            //         << iter1.second << "\t" << 1.0 - (iter1.second/(double)allSynNum)*(double)correctionFactor << "\n";
-
-            outStream << chromosome << "\t" << loci << "\t" << allSynNum << "\t" << iter1 << "\t" << 1.0 - iter1/(double)allSynNum << "\n";
+        for (const auto& calOut : calOutVec) {  // // vector<uint32_t>
+            outStream << chromosome << "\t" << loci << "\t" << allSynNum << "\t" << calOut << "\t" << 1.0 - calOut/(double)allSynNum << "\n";
 
             if (outStream.tellp() >= CACHE_SIZE) {  // Cache size is 10mb
                 string outTxt = outStream.str();
@@ -1528,6 +1621,27 @@ int CALNAME::calculate_fast(
             // Clear stringstream
             outStream.str(string());
             outStream.clear();
+        }
+
+        // insertion
+        for (auto AveSynNumInsMapIter : LociAveSynNumInsMap) {  // map<refStart, aveSynSum> (insertion)
+            outStreamIns << chromosome << "\t" << AveSynNumInsMapIter.first << "\t" << 1.0 - AveSynNumInsMapIter.second/(float)sampleNum << "\n";
+
+            if (outStreamIns.tellp() >= CACHE_SIZE) {  // Cache size is 10mb
+                string outTxt = outStreamIns.str();
+                SAVEInsClass.save(outTxt);
+                // empty stringstream
+                outStreamIns.str(string());
+                outStreamIns.clear();
+            }
+        }
+
+        if (outStreamIns.tellp() > 0) {  // write one last time
+            string outTxt = outStreamIns.str();
+            SAVEInsClass.save(outTxt);
+            // empty stringstream
+            outStreamIns.str(string());
+            outStreamIns.clear();
         }
     }
 

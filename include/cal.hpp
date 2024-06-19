@@ -40,43 +40,45 @@ void help_cal(char* argv[]);
 int main_cal(int argc, char* argv[]);
 
 
-namespace CALNAME
-{
+namespace CALNAME {
     // kseq.h open file
     KSEQ_INIT(gzFile, gzread)
 
     /**
-     * @brief Parse parameters
+     * @brief Parse parameters (aligns + no_syn + no_syn_alignment)
      * 
      * @param alignsTitles         aligns file title
      * @param alignsVec            aligns path Vec
-     * @param syriConfigFileName   Configuration file output by syri
+     * @param noSynFileName        'SynDiv_c no_syn' output file name
+     * @param syriConfigFileName   'SynDiv_p' output file name
      * 
-     * @return make_tuple(alignsMap, sampleSampleSyriMap)       map<sampleName, alignsPath>, map<sample1, map<sample2, syriOutPath> >
+     * @return make_tuple(alignsMap, insChrStartSampleLociTupMap, sampleSampleSyriMap)       map<sampleName, alignsPath>, map<chr, map<start, map<sample, tuple<start, length> > > >, map<sample1, map<sample2, syriOutPath> >
     */
-    tuple<map<string, string>, map<string, map<string, string> > > aligns_parameter(
+    tuple<map<string, string>, unordered_map<string, unordered_map<uint32_t, unordered_map<string, tuple<uint32_t, uint32_t> > > >, map<string, map<string, string> > > cal_parameter(
         const vector<string> & alignsTitles, 
         const vector<string> & alignsVec, 
+        const string & noSynFileName,
         const string & syriConfigFileName
     );
 
 
-    struct CALSTRUCTURE
-    {
+    struct CALSTRUCTURE {
         // sampleName
         string sampleName;
 
-        // Record the number of site collinearities
+        // Record the count of syntenic size (synteny + deletion)
         map<string, map<uint32_t, uint32_t> > sampleSynOutMap;  // map<chr, map<refLoci, synNum> >
 
-        // Record the sample name and position corresponding to site collinearity
+        // Record the count of syntenic sites (insertions) whose locations cannot be found in the reference genome
+        map<string, map<uint32_t, float> > sampleSynOutInsMap;  // map<chr, map<refLoci, synNumAve> >
+
+        // Record the sample name and position corresponding to site syntenic
         map<string, map<uint32_t, string> > sampleSynOutMapTmp;  // map<chr, map<refLoci, sampleName> >  name2:pos1-pos2;name3:pos1-pos3
     };
 
 
     // Coordinate transformation
-    class SYNCOOR
-    {
+    class SYNCOOR {
     private:
         // Collinear coordinate file 'coor' output results
         string fileName_;
@@ -110,50 +112,32 @@ namespace CALNAME
             string line;
             while (GzChunkReaderClass.read_line(line)) {
                 // Skip empty lines
-                if (line.empty()) {
-                    continue;
-                }
+                if (line.empty()) continue;
 
-                // split
+                // Split line into words
                 std::istringstream iss(line);
                 vector<string> lineVec(std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>());
 
-                // First check whether the number of columns is a multiple of three
+                // Ensure the number of columns is a multiple of three
                 if (lineVec.size() % 3 != 0) {
                     cerr << "[" << __func__ << "::" << getTime() << "] "
                         << "'Error: The number of columns is not a multiple of three -> " << fileName_ << endl;
                     exit(1);
                 }
 
-                // Record every three columns
-                int idxTmp = lineVec.size() / 3;
-                // temporary key 
-                string chrTmp = "";
-                uint32_t refStartTmp = 0;
-                for (size_t i = 0; i < idxTmp; i++) {
-                    string sampleNameTmp = lineVec[3*i + 0];
-                    uint32_t qryStartTmp = 0;
-                    uint32_t qryEndTmp = 0;
+                // Declare a pointer to the map
+                map<string, tuple<uint32_t, uint32_t> >* coorSampleLociMapPtr = nullptr;
 
-                    // Determine whether it is a number, not always 0
-                    if (isdigit(lineVec[3*i + 1][0])) {
-                        qryStartTmp = stoul(lineVec[3*i + 1]);
-                    } if (isdigit(lineVec[3*i + 2][0])) {
-                        qryEndTmp = stoul(lineVec[3*i + 2]);
-                    }
-                    
-                    // chromosome
+                // Process every three columns
+                for (size_t i = 0; i < lineVec.size(); i += 3) {
+                    string sampleNameTmp = lineVec[i];
+                    uint32_t qryStartTmp = isdigit(lineVec[i + 1][0]) ? stoul(lineVec[i + 1]) : 0;
+                    uint32_t qryEndTmp = isdigit(lineVec[i + 2][0]) ? stoul(lineVec[i + 2]) : 0;
+
+                    // For the first group, initialize map and set chromosome and reference start
                     if (i == 0) {
-                        chrTmp = sampleNameTmp;
-                        refStartTmp = stoul(lineVec[3*i + 1]);
-
-                        // initialize map
-                        if (coorChrLociSampleLociMap.find(chrTmp) == coorChrLociSampleLociMap.end()) {
-                            coorChrLociSampleLociMap[chrTmp];
-                        }
-                        if (coorChrLociSampleLociMap[chrTmp].find(refStartTmp) == coorChrLociSampleLociMap[chrTmp].end()) {
-                            coorChrLociSampleLociMap[chrTmp][refStartTmp];
-                        }
+                        // Initialize pointer to the map
+                        coorSampleLociMapPtr = &coorChrLociSampleLociMap[sampleNameTmp][qryStartTmp];
 
                         sampleNameTmp = "reference";
                     }
@@ -164,7 +148,7 @@ namespace CALNAME
                     }
                     
                     // Add to total hash table
-                    coorChrLociSampleLociMap[chrTmp][refStartTmp][sampleNameTmp] = make_tuple(qryStartTmp, qryEndTmp);
+                    (*coorSampleLociMapPtr)[sampleNameTmp] = make_tuple(qryStartTmp, qryEndTmp);
                 }
 
                 // Only record the 'sampleName' of the first row
@@ -175,8 +159,7 @@ namespace CALNAME
 
 
     // Coordinate transformation
-    class COORTRANS
-    {
+    class COORTRANS {
     private:
         // show-align output 'xx.aligns'
         string aliFileName_;
@@ -358,6 +341,10 @@ namespace CALNAME
             string chr_, 
             uint32_t refLoci_
         );
+
+        tuple<string, uint32_t, uint32_t> get_alignment_loc() {
+            return make_tuple(chr, refStart, refEnd);
+        }
     };
 
 
@@ -377,11 +364,12 @@ namespace CALNAME
     /**
      * @brief calculate
      * 
-     * @param sampleName               sample name
-     * @param refLenMap                chromosome length
-     * @param SynCoorTmp               collinear coordinates
-     * @param sampleSampleSyriMap      syri.out output path dictionary
-     * @param alignsMap                show-aligns output path dictionary
+     * @param sampleName                   sample name
+     * @param refLenMap                    chromosome length
+     * @param SynCoorTmp                   collinear coordinates
+     * @param sampleSampleSyriMap          syri.out output path dictionary
+     * @param alignsMap                    show-aligns output path dictionary
+     * @param insChrStartSampleLociTupMap  map<chr, map<start, map<sample, tuple<start, length> > > >
      * 
      * @return CALSTRUCTURE
     **/
@@ -390,7 +378,8 @@ namespace CALNAME
         const map<string, uint32_t> & refLenMap, 
         const SYNCOOR & SynCoorTmp, 
         const map<string, map<string, string> > & sampleSampleSyriMap, 
-        const map<string, string> & alignsMap
+        const map<string, string> & alignsMap, 
+        const unordered_map<string, unordered_map<uint32_t, unordered_map<string, tuple<uint32_t, uint32_t> > > > & insChrStartSampleLociTupMap
     );
 
 
@@ -402,25 +391,28 @@ namespace CALNAME
      * @param calOutStr                 All calculation results for a sample
      * @param refLenMap                 Chromosome length information map<string, length>
      * @param chrLociSynNumMap          Save the final result map<chr, vector<synNum> >
+     * @param chrLociAveSynNumInsMap    Save the final result map<chr, map<refStart, synNumAve> > (insertion)
      * 
      * @return 0
     **/
     int merge(
         const CALSTRUCTURE& calOutStr,
         const map<string, uint32_t> & refLenMap,
-        map<string, vector<uint32_t> >& chrSynNumVecMap
+        map<string, vector<uint32_t> >& chrSynNumVecMap,
+        map<string, map<uint32_t, float> > & chrLociAveSynNumInsMap
     );
 
 
     /**
      * @brief calculate
      * 
-     * @param refLenMap                chromosome length
-     * @param SynCoorTmp               collinear coordinates
-     * @param sampleSampleSyriMap      syri.out output path dictionary
-     * @param alignsMap                show-aligns output path dictionary
-     * @param allSynNum                All combination quantities
-     * @param outputFileName           Output file name
+     * @param refLenMap                    chromosome length
+     * @param SynCoorTmp                   collinear coordinates
+     * @param sampleSampleSyriMap          syri.out output path dictionary
+     * @param alignsMap                    show-aligns output path dictionary
+     * @param insChrStartSampleLociTupMap  map<chr, map<start, map<sample, tuple<start, length> > > >
+     * @param allSynNum                    All combination quantities
+     * @param outputFileName               Output file name
      * 
      * @return 0
     **/
@@ -429,6 +421,7 @@ namespace CALNAME
         const SYNCOOR & SynCoorTmp, 
         const map<string, map<string, string> > & sampleSampleSyriMap, 
         const map<string, string> & alignsMap, 
+        const unordered_map<string, unordered_map<uint32_t, unordered_map<string, tuple<uint32_t, uint32_t> > > > & insChrStartSampleLociTupMap, 
         const uint32_t & allSynNum, 
         const string & outputFileName
     );
@@ -443,9 +436,9 @@ namespace CALNAME
      * @param chrLen                             chromosome length
      * @param CALSTRUCTUREVec                    Multi-threaded output results
      * 
-     * @return tuple<chromosome, synOutVecTmp>   tuple<chr, vector<synNum> >
+     * @return tuple<chromosome, synOutVecTmp, chrLociAveSynNumInsMap>   tuple<chr, vector<synNum>, map<refStart, synNumAve> >
     **/
-    tuple<string, vector<uint32_t> > merge_fast(
+    tuple<string, vector<uint32_t>, map<uint32_t, float> > merge_fast(
         string chromosome, 
         uint32_t chrLen, 
         const vector<CALSTRUCTURE> & CALSTRUCTUREVec
@@ -455,12 +448,13 @@ namespace CALNAME
     /**
      * @brief calculate
      * 
-     * @param refLenMap                chromosome length
-     * @param SynCoorTmp               collinear coordinates
-     * @param sampleSampleSyriMap      syri.out output path dictionary
-     * @param alignsMap                show-aligns output path dictionary
-     * @param allSynNum                All combination quantities
-     * @param outputFileName           Output file name
+     * @param refLenMap                    chromosome length
+     * @param SynCoorTmp                   collinear coordinates
+     * @param sampleSampleSyriMap          syri.out output path dictionary
+     * @param alignsMap                    show-aligns output path dictionary
+     * @param insChrStartSampleLociTupMap  map<chr, map<start, map<sample, tuple<start, length> > > >
+     * @param allSynNum                    All combination quantities
+     * @param outputFileName               Output file name
      * 
      * @return 0
     **/
@@ -469,6 +463,7 @@ namespace CALNAME
         const SYNCOOR & SynCoorTmp, 
         const map<string, map<string, string> > & sampleSampleSyriMap, 
         const map<string, string> & alignsMap, 
+        const unordered_map<string, unordered_map<uint32_t, unordered_map<string, tuple<uint32_t, uint32_t> > > > & insChrStartSampleLociTupMap, 
         const uint32_t & allSynNum, 
         const string & outputFileName
     );

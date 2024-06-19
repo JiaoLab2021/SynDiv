@@ -780,7 +780,7 @@ def main(args, config_file_map, no_synPath, workDir, code_path):
 
 
     # #################################### build index #################################### #
-    logger.error(f'Initiating index construction...')
+    logger.error(f'Initiating index construction ...')
 
     ali_loci_class._index()
 
@@ -788,7 +788,7 @@ def main(args, config_file_map, no_synPath, workDir, code_path):
 
 
     # #################################### Alignment #################################### #
-    logger.error(f'Starting alignment...')
+    logger.error(f'Starting alignment ...')
 
 
     # Create a process pool, specify the maximum number of processes as args.jobs

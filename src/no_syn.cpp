@@ -149,7 +149,7 @@ void help_no_syn(char* argv[])
        << "retrieve non-syntenic coordinates" << endl
        << endl
        << "required arguments:" << endl
-       << "    --coor              FILE      syntenic coordinates, output file of coor" << endl
+       << "    --coor              FILE      syntenic coordinates, output file of 'SynDiv_c coor'" << endl
        << "    --lengths           FILE      chromosome length files for query genomes (format: chr\tlength), one for multiple mate" << endl
        << endl
        << "optional arguments:" << endl

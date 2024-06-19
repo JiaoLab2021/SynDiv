@@ -1,4 +1,4 @@
-// g++ SynDiv_c.cpp src/*.cpp -o SynDiv_c -lz -lpthread -O3 -std=c++17
+// g++ SynDiv_c.cpp src/*.cpp -o SynDiv_c -lz -lpthread -O3 -std=c++17 -march=native
 #include <iostream>
 #include <vector>
 #include "zlib.h"
@@ -17,9 +17,9 @@
 using namespace std;
 
 // define data
-#define PROGRAM_DATA "2024/02/23"
+#define PROGRAM_DATA "2024/06/12"
 // define version
-#define PROGRAM_VERSION "1.1.1"
+#define PROGRAM_VERSION "1.1.2"
 // define author
 #define PROGRAM_AUTHOR "Zezhen Du"
 // define E-mail
@@ -44,33 +44,20 @@ int main(int argc, char** argv)
     // subcommand
     string subcommand = argv[1];
 
-    if (subcommand == "-h" || subcommand == "--help")
-    {
+    if (subcommand == "-h" || subcommand == "--help") {
         help(argv);
         return 1;
-    }
-    else if (subcommand == "multiinter")
-    {
+    } else if (subcommand == "multiinter") {
         main_multiinter(argc, argv);       
-    }
-    else if (subcommand == "coor")
-    {
+    } else if (subcommand == "coor") {
         main_coor(argc, argv);       
-    }
-    else if (subcommand == "no_syn")
-    {
+    } else if (subcommand == "no_syn") {
         main_no_syn(argc, argv);       
-    }
-    else if (subcommand == "cal")
-    {
+    } else if (subcommand == "cal") {
         main_cal(argc, argv);       
-    }
-    else if (subcommand == "window")
-    {
+    } else if (subcommand == "window") {
         main_window(argc, argv);       
-    }
-    else
-    {
+    } else {
         cerr << "Error: ["<< argv[0] << "] command " << subcommand << " not found." << endl;
         help(argv);
         return 1;
@@ -83,8 +70,7 @@ int main(int argc, char** argv)
 }
 
 // help documentation
-void help(char** argv)
-{
+void help(char** argv) {
   cerr << "usage: " << argv[0] << " <command> [options]" << endl
        << endl
        << "data: " << PROGRAM_DATA << endl

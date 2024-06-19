@@ -211,7 +211,7 @@ void help_coor(char* argv[])
        << "retrieve syntenic coordinates on the query genome" << endl
        << endl
        << "required arguments:" << endl
-       << "    -s, --syn           FILE      syntenic intersection, output by multiinter" << endl
+       << "    -s, --syn           FILE      syntenic intersection, output by 'SynDiv_c multiinter'" << endl
        << "    -i, --inputs        FILE      list of output files of show-aligns (.aligns), one for multiple mate" << endl
        << endl
        << "optional arguments:" << endl

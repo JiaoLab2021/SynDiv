@@ -2,8 +2,8 @@
 
 # -*- coding: utf-8 -*-
 
-__data__ = "2024/02/23"
-__version__ = "1.1.1"
+__data__ = "2024/06/12"
+__version__ = "1.1.2"
 __author__ = "Zezhen Du"
 __email__ = "dzz0539@gmail.com or dzz0539@163.com"
 
@@ -52,13 +52,13 @@ class MyParser:
         self.optional = self.parser._action_groups.pop()
         # Input options
         self.required = self.parser.add_argument_group("Input Files")
-        self.required.add_argument("-i, --input", dest="input", help="File containing non-syntenic coordinates, output by SynDiv no_syn", type=str, required=True)
+        self.required.add_argument("-i, --input", dest="input", help="File containing non-syntenic coordinates, output by 'SynDiv no_syn'", type=str, required=True)
         self.required.add_argument("-c, --config", dest="config", help="Genome configuration file (format: sample\tpath)", type=str, required=True)
         # Alignment options
         self.AlignmentFun = self.parser.add_argument_group("Alignment arguments")
-        self.AlignmentFun.add_argument('-F', dest="ftype", help="Input file type. T: Table, S: SAM, B: BAM, P: PAF", default="S", choices=['T', 'S', 'B', 'P'])
-        self.AlignmentFun.add_argument('-f', dest='f', help='Filter out low quality and small alignments. Use this parameter to use the full list of alignments without any filtering.', default=True, action='store_false')
-        self.AlignmentFun.add_argument("--no-chrmatch", dest='chrmatch', help="Don't allow automatic matching chromosome ids between the two genomes if they are not equal", default=False, action='store_true')
+        self.AlignmentFun.add_argument('-F', dest="ftype", help=argparse.SUPPRESS, default="S", choices=['T', 'S', 'B', 'P'])
+        self.AlignmentFun.add_argument('-f', dest='f', help=argparse.SUPPRESS, default=True, action='store_false')
+        self.AlignmentFun.add_argument("--no-chrmatch", dest='chrmatch', help=argparse.SUPPRESS, default=False, action='store_true')
         self.AlignmentFun.add_argument('--synRatio', dest="synRatio", help="Threshold for complete synteny detection. Lower values increase alignment speed (0,1].", type=float, default=0.8)
         self.AlignmentFun.add_argument('--nosynRatio', dest="nosynRatio", help="Threshold for complete no-synteny detection. Higher values increase alignment speed (0,1].", type=float, default=0.05)
         # Parallel options
@@ -139,7 +139,7 @@ class MySynDiv(MyParser):
             self.genomesFileMap[infoList[0]] = genomeFilePath
             # Check if the file exists and is greater than 0
             if not os.path.isfile(genomeFilePath) or os.path.getsize(genomeFilePath) == 0:
-                self.logger.error(f"Error: The file '{genomeFilePath}' either does not exist or is empty.")
+                self.logger.error(f"Error: The file '{genomeFilePath}' does not exist or is empty.")
                 sys.exit(1)
 
     # Create a directory

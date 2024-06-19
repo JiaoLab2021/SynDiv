@@ -133,7 +133,7 @@ void help_window(char* argv[])
        << endl
        << "required arguments:" << endl
        << "    -r, --reference     FILE      input FASTA reference" << endl
-       << "    -i, --input         FILE      syntenic diversity, output file of cal" << endl
+       << "    -i, --input         FILE      syntenic diversity, output file of 'SynDiv_c cal'" << endl
        << endl
        << "optional arguments:" << endl
        << "    -w, --window        INT       window size [5000]" << endl
