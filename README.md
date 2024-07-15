@@ -46,10 +46,12 @@ cd SynDiv
 ```shell
 cmake ./
 make
-chmod +x SynDiv.py SynDiv_p.py genome2SynDiv_config.py
+chmod +x SynDiv.py SynDiv_p.py genome2SynDiv_config.py cal_Syn_Fst.py gene_Syn_Fst.py
 ln -sf SynDiv.py SynDiv
 ln -sf SynDiv_p.py SynDiv_p
 ln -sf genome2SynDiv_config.py genome2SynDiv_config
+ln -sf cal_Syn_Fst.py cal_Syn_Fst
+ln -sf gene_Syn_Fst.py gene_Syn_Fst
 echo 'export PATH="$PATH:'$(pwd)'"' >> ~/.bashrc
 source ~/.bashrc
 ```
