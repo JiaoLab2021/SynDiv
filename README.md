@@ -1,7 +1,7 @@
 # SynDiv
 
 <!-- [![GitHub Downloads](https://img.shields.io/github/downloads/JiaoLab2021/SynDiv/total.svg?style=social&logo=github&label=Download)](https://github.com/JiaoLab2021/SynDiv/releases) -->
-[![BioConda Install](https://img.shields.io/conda/dn/duzezhen/syndiv.svg?style=flag&label=BioConda%20install)](https://anaconda.org/DuZeZhen/syndiv)
+<!-- [![BioConda Install](https://img.shields.io/conda/dn/duzezhen/syndiv.svg?style=flag&label=BioConda%20install)](https://anaconda.org/DuZeZhen/syndiv) -->
 [![GitHub last commit](https://img.shields.io/github/last-commit/JiaoLab2021/syndiv.svg?label=Last%20commit&logo=github&style=flat)](https://github.com/JiaoLab2021/SynDiv/releases)
 [![Build Status](https://github.com/JiaoLab2021/SynDiv/actions/workflows/ci.yaml/badge.svg)](https://github.com/JiaoLab2021/SynDiv/actions)
 
@@ -21,7 +21,7 @@ Please note the following requirements before building and running the software:
 
 ## Installation
 
-**Install via conda**
+### Install via conda
 
 ```shell
 conda create -n syndiv
@@ -30,7 +30,7 @@ conda activate syndiv
 conda install -c bioconda -c conda-forge -c duzezhen syndiv
 ```
 
-**Building on Linux**
+### Building on Linux
 
 Use the following script to build the software:
 
@@ -78,7 +78,7 @@ nohup /usr/bin/time -v SynDiv -r genome/refgenome.fa -c configuration.txt &>log.
 
 ## Usage
 
-**Input Files**
+### Input Files
 
 To quickly get started, you will need two input files: `aligns` files and `syri.out` files. Once you have obtained these files, make sure to prepare the Reference genome and configuration file.
 
@@ -95,11 +95,11 @@ sample2 sample2.fa sample2.aligns sample2.syri.out
 sampleN sampleN.fa sampleN.aligns sampleN.syri.out
 ```
 
-[configuration_article]: https://github.com/JiaoLab2021/SynDiv/wiki/Configuration-file
+[configuration_url]: https://github.com/JiaoLab2021/SynDiv/wiki/Configuration-file
 
-File should be separated by tabs. The code examples for generating `aligns` and `syri.out` files can be found on the [wiki][configuration_article].
+File should be separated by tabs. The code examples for generating `aligns` and `syri.out` files can be found on the [wiki][configuration_url].
 
-**Running**
+### Running
 
 Before running the software, it is recommended to set the maximum number of open files using the `ulimit -n <number>` command. The maximum number of open files can be calculated based on the number of genomes (`n`) and the number of threads (`t`) using the following formula:
 
@@ -112,16 +112,24 @@ For convenience, let's assume the following file names for the input:
 * `refgenome.fa`
 * `configuration.txt`
 
+**One-Click Generation**
+
 ```shell
 ulimit -n 50000
 SynDiv -r refgenome.fa -c configuration.txt &
 ```
 
+**Note**
+
+[Manual-execution_url]: https://github.com/JiaoLab2021/SynDiv/wiki/Manual-execution
+
+See the [wiki][Manual-execution_url] for step-by-step manual execution of SynDiv and calucate Syn-Fst.
+
 ## Citation
 
 Please cite:
 
-[article][article_url]
+[SynDiv: An efficient tool for chromosome collinearity-based population genomics analyses][article_url]
 
 ## License
 

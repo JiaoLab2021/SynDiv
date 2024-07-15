@@ -53,7 +53,7 @@ install(TARGETS SynDiv_c DESTINATION bin)
 # 安装头文件
 install(DIRECTORY include/ DESTINATION include)
 
-install(FILES SynDiv.py SynDiv_p.py genome2SynDiv_config.py
+install(FILES SynDiv.py SynDiv_p.py genome2SynDiv_config.py cal_Syn_Fst.py gene_Syn_Fst.py
         DESTINATION bin
 )
 
@@ -62,6 +62,10 @@ install(CODE "execute_process(COMMAND cp -r include ${CMAKE_INSTALL_PREFIX}/bin/
 install(CODE "execute_process(COMMAND chmod +x ${CMAKE_INSTALL_PREFIX}/bin/SynDiv.py)")
 install(CODE "execute_process(COMMAND chmod +x ${CMAKE_INSTALL_PREFIX}/bin/SynDiv_p.py)")
 install(CODE "execute_process(COMMAND chmod +x ${CMAKE_INSTALL_PREFIX}/bin/genome2SynDiv_config.py)")
+install(CODE "execute_process(COMMAND chmod +x ${CMAKE_INSTALL_PREFIX}/bin/cal_Syn_Fst.py)")
+install(CODE "execute_process(COMMAND chmod +x ${CMAKE_INSTALL_PREFIX}/bin/gene_Syn_Fst.py)")
 install(CODE "execute_process(COMMAND ln -s ${CMAKE_INSTALL_PREFIX}/bin/SynDiv.py ${CMAKE_INSTALL_PREFIX}/bin/SynDiv)")
 install(CODE "execute_process(COMMAND ln -s ${CMAKE_INSTALL_PREFIX}/bin/SynDiv_p.py ${CMAKE_INSTALL_PREFIX}/bin/SynDiv_p)")
 install(CODE "execute_process(COMMAND ln -s ${CMAKE_INSTALL_PREFIX}/bin/genome2SynDiv_config.py ${CMAKE_INSTALL_PREFIX}/bin/genome2SynDiv_config)")
+install(CODE "execute_process(COMMAND ln -s ${CMAKE_INSTALL_PREFIX}/bin/cal_Syn_Fst.py ${CMAKE_INSTALL_PREFIX}/bin/cal_Syn_Fst)")
+install(CODE "execute_process(COMMAND ln -s ${CMAKE_INSTALL_PREFIX}/bin/gene_Syn_Fst.py ${CMAKE_INSTALL_PREFIX}/bin/gene_Syn_Fst)")
