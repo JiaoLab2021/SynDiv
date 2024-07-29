@@ -89,6 +89,8 @@ To quickly get started, you will need two input files: `aligns` files and `syri.
 
 Please note that the chromosome names in the query genome must match those in the reference genome.
 
+Sample names and file paths should not contain special characters, especially `_` or `-`.
+
 ```shell
 # configuration file
 sample1 sample1.fa sample1.aligns sample1.syri.out
