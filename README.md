@@ -131,9 +131,17 @@ See the [wiki][Manual-execution_url] for step-by-step manual execution of SynDiv
 
 ## Citation
 
+[SynDiv_article]: https://www.cell.com/plant-communications/fulltext/S2590-3462(24)00425-5
+[minimap2_article]: https://academic.oup.com/bioinformatics/article/34/18/3094/4994778
+[samtools_article]: https://academic.oup.com/gigascience/article/10/2/giab008/6137722?login=false
+
 Please cite:
 
-[SynDiv: An efficient tool for chromosome collinearity-based population genomics analyses][article_url]
+*  Du, ZZ., He, JB. & Jiao, WB. [SynDiv: An efficient tool for chromosome collinearity-based population genomics analyses.][SynDiv_article] Plant Communications (2024).
+
+*  Heng Li, [Minimap2: pairwise alignment for nucleotide sequences,][minimap2_article] Bioinformatics, Volume 34, Issue 18, September 2018, Pages 3094–3100
+
+*  Danecek, P., Bonfield, J. K., Liddle, J. et al. [Twelve years of SAMtools and BCFtools.][samtools_article] GigaScience, Volume 10, Issue 2, February 2021, giab008
 
 ## License
 
