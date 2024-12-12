@@ -29,6 +29,37 @@ public:
         }
     }
 
+    // Disable copy constructor and copy assignment operator
+    GzChunkReader(const GzChunkReader&) = delete;
+    GzChunkReader& operator=(const GzChunkReader&) = delete;
+
+    // Move Constructor
+    GzChunkReader(GzChunkReader&& other) noexcept
+        : file_path_(std::move(other.file_path_)), chunk_size_(other.chunk_size_),
+          chunk_buffer_(std::move(other.chunk_buffer_)), buffer_(other.buffer_),
+          buffer_pos_(other.buffer_pos_), buffer_end_(other.buffer_end_), file_(other.file_) 
+    {
+        other.file_ = nullptr;
+    }
+
+    // Move assignment operator
+    GzChunkReader& operator=(GzChunkReader&& other) noexcept {
+        if (this != &other) {
+            if (file_) {
+                gzclose(file_);
+            }
+            file_path_ = std::move(other.file_path_);
+            chunk_size_ = other.chunk_size_;
+            chunk_buffer_ = std::move(other.chunk_buffer_);
+            buffer_ = other.buffer_;
+            buffer_pos_ = other.buffer_pos_;
+            buffer_end_ = other.buffer_end_;
+            file_ = other.file_;
+            other.file_ = nullptr;
+        }
+        return *this;
+    }
+
     bool read_line(std::string& line) {
         line.clear();
 

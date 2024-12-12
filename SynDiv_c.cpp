@@ -13,13 +13,14 @@
 #include "include/no_syn.hpp"
 #include "include/cal.hpp"
 #include "include/window.hpp"
+#include "include/Fst.hpp"
 
 using namespace std;
 
 // define data
-#define PROGRAM_DATA "2024/06/12"
+#define PROGRAM_DATA "2024/12/11"
 // define version
-#define PROGRAM_VERSION "1.1.2"
+#define PROGRAM_VERSION "1.1.3"
 // define author
 #define PROGRAM_AUTHOR "Zezhen Du"
 // define E-mail
@@ -48,15 +49,17 @@ int main(int argc, char** argv)
         help(argv);
         return 1;
     } else if (subcommand == "multiinter") {
-        main_multiinter(argc, argv);       
+        main_multiinter(argc, argv);
     } else if (subcommand == "coor") {
-        main_coor(argc, argv);       
+        main_coor(argc, argv);
     } else if (subcommand == "no_syn") {
-        main_no_syn(argc, argv);       
+        main_no_syn(argc, argv);
     } else if (subcommand == "cal") {
-        main_cal(argc, argv);       
+        main_cal(argc, argv);
     } else if (subcommand == "window") {
-        main_window(argc, argv);       
+        main_window(argc, argv);
+    } else if (subcommand == "Fst") {
+        main_Fst(argc, argv);
     } else {
         cerr << "Error: ["<< argv[0] << "] command " << subcommand << " not found." << endl;
         help(argv);
@@ -83,6 +86,7 @@ void help(char** argv) {
        << "   no_syn         retrieve non-syntenic coordinates" << endl
        << "   cal            compute syntenic diversity" << endl
        << "   window         calculate the average score within window" << endl
+       << "   Fst            calculate population differentiation index Fst" << endl
        << endl
        << "   -h, --help     print this help document" << endl
        << endl

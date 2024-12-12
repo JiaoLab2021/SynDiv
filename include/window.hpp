@@ -137,9 +137,9 @@ namespace Window
                 std::istringstream iss(line);
                 vector<string> lineVec(std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>());
 
-                // Skip empty lines
+                // Check the number of columns
                 if (lineVec.size() != 5) {
-                    cerr << "[" << __func__ << "::" << getTime() << "] " << "Error: The number of columns in the file is not 5." << endl;
+                    cerr << "[" << __func__ << "::" << getTime() << "] " << "Error: The syntenic diversity file '"<< calFileName_ << "' must have five columns." << endl;
                     exit(1);
                 }
 
@@ -149,7 +149,7 @@ namespace Window
 
                 // Check if it is a number
                 if (!isdigit(scoreS[0])) {
-                    cerr << "[" << __func__ << "::" << getTime() << "] " << "Error: Identify non-numeric data -> " << scoreS << endl;
+                    cerr << "[" << __func__ << "::" << getTime() << "] " << "Error: Detected non-numeric character '" << scoreS << "' in the fifth column of the file '" << calFileName_ << "'" << endl;
                     exit(1);
                 }
 

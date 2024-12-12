@@ -62,13 +62,13 @@ int main_cal(int argc, char* argv[]) {
     for(int i = 1; i < argc; i++) {
         int parameterLength = (int)strlen(argv[i]);
 
-        if((PARAMETER_CHECK("-r", 2, parameterLength)) || 
+        if ((PARAMETER_CHECK("-r", 2, parameterLength)) || 
         (PARAMETER_CHECK("--reference", 11, parameterLength))) {
             if ((i+1) < argc) {
                 referenceFileName = argv[i + 1];
                 i++;
             }
-        } else if(PARAMETER_CHECK("--coor", 6, parameterLength)) {
+        } else if (PARAMETER_CHECK("--coor", 6, parameterLength)) {
             if ((i+1) < argc) {
                 coorFileName = argv[i + 1];
                 i++;
@@ -78,12 +78,12 @@ int main_cal(int argc, char* argv[]) {
                 noSynFileName = argv[i + 1];
                 i++;
             }
-        } else if(PARAMETER_CHECK("--syri_outs", 11, parameterLength)) {
+        } else if (PARAMETER_CHECK("--syri_outs", 11, parameterLength)) {
             if ((i+1) < argc) {
                 syriConfigFileName = argv[i + 1];
                 i++;
             }
-        } else if(PARAMETER_CHECK("--aligns", 8, parameterLength)) {
+        } else if (PARAMETER_CHECK("--aligns", 8, parameterLength)) {
             if ((i+1) < argc) {
                 i = i+1;
                 string file = argv[i];
@@ -95,7 +95,7 @@ int main_cal(int argc, char* argv[]) {
                 }
                 i--;
             }
-        } else if((PARAMETER_CHECK("-n", 2, parameterLength)) || 
+        } else if ((PARAMETER_CHECK("-n", 2, parameterLength)) || 
         (PARAMETER_CHECK("--names", 7, parameterLength))) {
             if ((i+1) < argc) {
                 haveTitles = true;
@@ -109,29 +109,28 @@ int main_cal(int argc, char* argv[]) {
                 }
                 i--;
             }
-        } else if(PARAMETER_CHECK("-o", 2, parameterLength) ||
+        } else if (PARAMETER_CHECK("-o", 2, parameterLength) ||
         (PARAMETER_CHECK("--output", 8, parameterLength))) {
             if ((i+1) < argc) {
                 outputFileName = argv[i + 1];
                 i++;
             }
-        } else if(PARAMETER_CHECK("-t", 2, parameterLength) ||
+        } else if (PARAMETER_CHECK("-t", 2, parameterLength) ||
         (PARAMETER_CHECK("--threads", 9, parameterLength))) {
             if ((i+1) < argc) {
                 threadsCal = stoi(argv[i + 1]);
                 i++;
             }
-        }
-        else if(PARAMETER_CHECK("--buffer", 8, parameterLength)) {
+        } else if (PARAMETER_CHECK("--buffer", 8, parameterLength)) {
             if ((i+1) < argc) {
                 readBuffer = stoul(argv[i + 1]);
                 i++;
             }
-        } else if(PARAMETER_CHECK("--fast", 6, parameterLength)) {
+        } else if (PARAMETER_CHECK("--fast", 6, parameterLength)) {
             if ((i) < argc) {
                 fastBool = true;
             }
-        } else if(PARAMETER_CHECK("--debug", 7, parameterLength)) {
+        } else if (PARAMETER_CHECK("--debug", 7, parameterLength)) {
             if ((i) < argc) {
                 debugCal = true;
             }

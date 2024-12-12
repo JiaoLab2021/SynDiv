@@ -50,8 +50,6 @@ chmod +x SynDiv.py SynDiv_p.py genome2SynDiv_config.py cal_Syn_Fst.py gene_Syn_F
 ln -sf SynDiv.py SynDiv
 ln -sf SynDiv_p.py SynDiv_p
 ln -sf genome2SynDiv_config.py genome2SynDiv_config
-ln -sf cal_Syn_Fst.py cal_Syn_Fst
-ln -sf gene_Syn_Fst.py gene_Syn_Fst
 echo 'export PATH="$PATH:'$(pwd)'"' >> ~/.bashrc
 source ~/.bashrc
 ```
@@ -108,7 +106,7 @@ File should be separated by tabs. The code examples for generating `aligns` and 
 Before running the software, it is recommended to set the maximum number of open files using the `ulimit -n <number>` command. The maximum number of open files can be calculated based on the number of genomes (`n`) and the number of threads (`t`) using the following formula:
 
 ```shell
-number = 10 + t*(2n - t - 1)
+number = 2nt
 ```
 
 For convenience, let's assume the following file names for the input:
@@ -140,11 +138,11 @@ Please cite:
 
 *  Du, ZZ., He, JB. & Jiao, WB. [SynDiv: An efficient tool for chromosome collinearity-based population genomics analyses.][SynDiv_article] Plant Communications (2024)
 
-<!-- *  Goel, M., Sun, H., Jiao, WB. et al. [SyRI: finding genomic rearrangements and local sequence differences from whole-genome assemblies.][SyRI_article] Genome Biol 20, 277 (2019)
+*  Goel, M., Sun, H., Jiao, WB. et al. [SyRI: finding genomic rearrangements and local sequence differences from whole-genome assemblies.][SyRI_article] Genome Biol 20, 277 (2019)
 
 *  Heng Li, [Minimap2: pairwise alignment for nucleotide sequences,][minimap2_article] Bioinformatics, Volume 34, Issue 18, September 2018, Pages 3094–3100
 
-*  Danecek, P., Bonfield, J. K., Liddle, J. et al. [Twelve years of SAMtools and BCFtools.][samtools_article] GigaScience, Volume 10, Issue 2, February 2021, giab008 -->
+*  Danecek, P., Bonfield, J. K., Liddle, J. et al. [Twelve years of SAMtools and BCFtools.][samtools_article] GigaScience, Volume 10, Issue 2, February 2021, giab008
 
 ## License
 

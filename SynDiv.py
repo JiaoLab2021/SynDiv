@@ -2,8 +2,8 @@
 
 # -*- coding: utf-8 -*-
 
-__data__ = "2024/06/12"
-__version__ = "1.1.2"
+__data__ = "2024/12/11"
+__version__ = "1.1.3"
 __author__ = "Zezhen Du"
 __email__ = "dzz0539@gmail.com or dzz0539@163.com"
 
@@ -63,7 +63,7 @@ class MyParser:
         # SynDic_c cal options
         self.calFun = self.parser.add_argument_group("SynDic_c cal arguments")
         self.calFun.add_argument('--mode', dest="mode", help="Enabling quick mode will increase memory consumption", default="normal", choices=["fast", "normal"])
-        self.calFun.add_argument('--buffer', dest="buffer", help="Buffer size for file reading, measured in MB [1].", type=int, default=1)
+        self.calFun.add_argument('--buffer', dest="buffer", help="Buffer size for file reading, measured in MB.", type=int, default=1)
         # SynDic_c window options
         self.windowFun = self.parser.add_argument_group("SynDic_c window arguments")
         self.windowFun.add_argument('--window', dest="window", help="Window size", type=int, default=5000)
