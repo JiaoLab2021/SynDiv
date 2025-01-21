@@ -2,8 +2,8 @@
 
 # -*- coding: utf-8 -*-
 
-__data__ = "2024/12/11"
-__version__ = "1.1.3"
+__data__ = "2025/01/21"
+__version__ = "1.1.4"
 __author__ = "Zezhen Du"
 __email__ = "dzz0539@gmail.com or dzz0539@163.com"
 
@@ -135,8 +135,15 @@ class MySynDiv(MyParser):
                 sys.exit(1)
 
             # Record the full genome path of the sample
+            sampleName = infoList[0]
             genomeFilePath = os.path.abspath(infoList[1])
-            self.genomesFileMap[infoList[0]] = genomeFilePath
+            self.genomesFileMap[sampleName] = genomeFilePath
+
+            # Check if the file name contains '_'
+            if "_" in sampleName:
+                self.logger.error(f"Error: The sample name '{sampleName}' contains an underscore ('_'). Please remove the underscore from the sample name.")
+                sys.exit(1)
+
             # Check if the file exists and is greater than 0
             if not os.path.isfile(genomeFilePath) or os.path.getsize(genomeFilePath) == 0:
                 self.logger.error(f"Error: The file '{genomeFilePath}' does not exist or is empty.")

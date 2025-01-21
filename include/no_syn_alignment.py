@@ -458,8 +458,11 @@ def samtools_index(path, config_file_map):
     :param path:               environment variable
     :param: config_file_map    dict{sample, {genome: "path", aligns: "path", syri_out: "path"}} / dict{sample, genome_path}
     :
-    :return:                   0
+    :return:                   stdout, stderr, log
     """
+    stdout, stderr, log = "", "", ""
+
+    # samtools index
     for key1, value1 in config_file_map.items():
         # the path of genome
         genomeFile = ""
@@ -480,9 +483,12 @@ def samtools_index(path, config_file_map):
             # build the index
             cmd = f"samtools faidx {genomeFile}"
             # submit task
-            run_cmd.run(cmd, path)
+            stdoutTmp, stderrTmp, logTmp = run_cmd.run(cmd, path)
 
-    return 0
+            if logTmp:
+                log = logTmp
+
+    return stdout, stderr, log
 
 
 def samtools(path, ali_loci_filename, key1, key2, value2, config_file_map, output_file_name):
@@ -784,7 +790,11 @@ def main(args, config_file_map, no_synPath, workDir, code_path):
 
     ali_loci_class._index()
 
-    samtools_index(code_path, config_file_map)
+    stdout, stderr, log = samtools_index(code_path, config_file_map)
+
+    if log:
+        logger.error(f'Error: {log}')
+        logger.error(f'Error: Samtools faidx error occurred. Please check if the genome file is correct or if the directory has read/write permissions.')
 
 
     # #################################### Alignment #################################### #
