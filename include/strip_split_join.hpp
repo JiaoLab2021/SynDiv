@@ -2,7 +2,6 @@
 #define STRIP_SPLIT_JOIN_HPP
 #include <string>
 #include <vector>
-#include <cstdint>
 
 using namespace std;
 
