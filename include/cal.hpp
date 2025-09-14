@@ -12,6 +12,7 @@
 #include <string.h>
 #include <malloc.h>
 #include <getopt.h>
+#include <iterator>
 
 #include "kseq.h"
 #include "get_time.hpp"

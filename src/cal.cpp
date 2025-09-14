@@ -193,9 +193,7 @@ int main_cal(int argc, char* argv[]) {
     cerr << "[" << __func__ << "::" << getTime() << "] " << "readBuffer: " << readBuffer << " MB" << endl;
 
     // If debugging the code, the number of threads is set to 1
-    if (debugCal) {
-        threadsCal = 1;
-    }
+    if (debugCal) { threadsCal = 1; }
 
     /* ************************************ Parse Parameters ************************************ */
     cerr << "[" << __func__ << "::" << getTime() << "] " << "Parse Parameters ..." << endl;
@@ -408,21 +406,17 @@ tuple<map<string, string>, unordered_map<string, unordered_map<uint32_t, unorder
  * @return tuple<strand, start, end>
 */
 tuple<string, uint32_t, uint32_t> CALNAME::COORTRANS::get_alignment_loc(string infoTmp) {
-    // Get alignment direction, start and end information ref
-    vector<string> infoTmp_list = split(infoTmp, " - ");  // '+1 278 - 1703'
-    vector<string> infoTmp_list_tmp = split(infoTmp_list[0], "1 ");  // '+1 278'
-    string strandTmp = infoTmp_list_tmp[0];
-    uint32_t startTmp;
-    uint32_t endTmp;
-    if (strandTmp == "+") {
-        startTmp = stoul(infoTmp_list_tmp[1]);
-        endTmp = stoul(infoTmp_list[1]);
-    } else {
-        startTmp = stoul(infoTmp_list[1]);
-        endTmp = stoul(infoTmp_list_tmp[1]);
+    static const std::regex pat(R"(([+-])1\s+(\d+)\s*-\s*(\d+))");
+    std::smatch m;
+    if (!std::regex_search(infoTmp, m, pat) || m.size() != 4) {
+        std::cerr << "[" << __func__ << "::" << getTime() << "] Error: can't parse alignment loc: \"" << infoTmp << "\"\n";
+        std::exit(1);
     }
-
-    return make_tuple(strandTmp, startTmp, endTmp);
+    std::string strand = m[1].str();                // "+" or "-"
+    uint32_t a = (uint32_t)std::stoul(m[2].str());  // start
+    uint32_t b = (uint32_t)std::stoul(m[3].str());  // end
+    if (strand == "+") return {strand, a, b};
+    else               return {strand, b, a};
 }
 
 /**
@@ -468,7 +462,7 @@ int CALNAME::COORTRANS::next_loci() {
                 line = strip(line.erase(0, 21), '\n');  // Delete '-- BEGIN alignment [ ' 21 characters in total
                 line = line.erase(line.size()-2, 2);  //Delete ' ]', a total of 2 characters, located in the last two characters
 
-                vector<string> lineVec = split(line, " | ");  // split '+1 278 - 1703 -1 2148 - 751'
+                vector<string> lineVec = split(line, " | ");  // split '+1 278 - 1703 | -1 2148 - 751'
 
                 // Get information about alignment direction, start and end, ref
                 tie(aliRefStrand, aliRefStart, aliRefEnd) = get_alignment_loc(
@@ -923,7 +917,10 @@ CALNAME::CALSTRUCTURE CALNAME::calculate_run(
             uint32_t refEnd = get<1>(SampleLociMap.at("reference"));
 
             // Coordinates of insertion
-            const auto& insStartSampleLociTupMapFindIter = (insChrStartSampleLociTupMapFindIter != insChrStartSampleLociTupMap.end()) ? insChrStartSampleLociTupMapFindIter->second.find(refStart) : insChrStartSampleLociTupMapFindIter->second.end();
+            const auto& insStartSampleLociTupMapFindIter = 
+            (insChrStartSampleLociTupMapFindIter != insChrStartSampleLociTupMap.end()) 
+            ? insChrStartSampleLociTupMapFindIter->second.find(refStart) 
+            : insChrStartSampleLociTupMapFindIter->second.end();
 
             // End coordinates for record collinearity
             refChrMapTmp[chrTmp] = refEnd;
@@ -1175,17 +1172,14 @@ int CALNAME::merge(
         map<string, map<uint32_t, uint32_t> >::const_iterator iter0 = calOutStr.sampleSynOutMap.find(chromosome);
         map<string, map<uint32_t, string> >::const_iterator iter3 = calOutStr.sampleSynOutMapTmp.find(chromosome);
 
-        // Temporary iterator that records the scores of the current and next positions
-        map<uint32_t, uint32_t>::const_iterator iter1;
-        map<uint32_t, uint32_t>::const_iterator iter2;
-        
-        if (iter0 != calOutStr.sampleSynOutMap.end()) {  // If it contains this chromosome
-            iter1 = iter0->second.begin();
-            iter2 = iter0->second.begin();
-            iter2++;
-        } else {
+        // Fix issue #8: If the chromosome does not exist or is empty, skip it directly
+        if (iter0 == calOutStr.sampleSynOutMap.end() || iter0->second.empty()) {
             continue;
         }
+
+        // Temporary iterator that records the scores of the current and next positions
+        map<uint32_t, uint32_t>::const_iterator iter1 = iter0->second.begin();
+        map<uint32_t, uint32_t>::const_iterator iter2 = std::next(iter1);
         
         // Record the synNum of the previous node
         uint32_t preSynNumTmp = 0;
@@ -1226,7 +1220,6 @@ int CALNAME::merge(
             }
         }
     }
-    
 
     return 0;
 }
@@ -1426,15 +1419,14 @@ tuple<string, vector<uint32_t>, map<uint32_t, float> > CALNAME::merge_fast(
         map<string, map<uint32_t, uint32_t> >::const_iterator iter0 = CALSTRUCTURETmp.sampleSynOutMap.find(chromosome);
         map<string, map<uint32_t, string> >::const_iterator iter3 = CALSTRUCTURETmp.sampleSynOutMapTmp.find(chromosome);
 
-        // Temporary iterator that records the scores of the current and next positions
-        map<uint32_t, uint32_t>::const_iterator iter1;
-        map<uint32_t, uint32_t>::const_iterator iter2;
-        
-        if (iter0 != CALSTRUCTURETmp.sampleSynOutMap.end()) {  // If it contains this chromosome
-            iter1 = iter0->second.begin();
-            iter2 = iter0->second.begin();
-            iter2++;
+        // Fix issue #8: If the chromosome does not exist or is empty, skip it directly
+        if (iter0 == CALSTRUCTURETmp.sampleSynOutMap.end() || iter0->second.empty()) {
+            continue;
         }
+
+        // Temporary iterator that records the scores of the current and next positions
+        map<uint32_t, uint32_t>::const_iterator iter1 = iter0->second.begin();
+        map<uint32_t, uint32_t>::const_iterator iter2 = std::next(iter1);
         
         // Record the synNum of the previous node
         uint32_t preSynNumTmp = 0;

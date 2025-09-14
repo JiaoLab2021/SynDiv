@@ -1,4 +1,5 @@
 #include "../include/strip_split_join.hpp"
+#include <cstdint>
 
 using namespace std;
 

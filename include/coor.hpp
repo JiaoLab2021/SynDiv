@@ -8,6 +8,7 @@
 #include <getopt.h>
 #include <future>
 #include <malloc.h>
+#include <iterator>
 
 #include "ThreadPool.hpp"
 #include "zlib.h"
